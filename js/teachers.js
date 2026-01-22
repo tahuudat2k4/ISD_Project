@@ -2,6 +2,13 @@
 let teachers = [];
 let editingTeacherId = null;
 
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Load teachers from localStorage
 function loadTeachers() {
     const stored = localStorage.getItem('teachers');
@@ -33,11 +40,11 @@ function renderTeachers() {
     tbody.innerHTML = teachers.map(teacher => `
         <tr>
             <td>${teacher.id}</td>
-            <td>${teacher.name}</td>
-            <td>${teacher.email}</td>
-            <td>${teacher.phone}</td>
-            <td>${teacher.subject}</td>
-            <td>${teacher.class}</td>
+            <td>${escapeHtml(teacher.name)}</td>
+            <td>${escapeHtml(teacher.email)}</td>
+            <td>${escapeHtml(teacher.phone)}</td>
+            <td>${escapeHtml(teacher.subject)}</td>
+            <td>${escapeHtml(teacher.class)}</td>
             <td class="action-buttons">
                 <button class="btn btn-warning btn-small" onclick="editTeacher(${teacher.id})">Sửa</button>
                 <button class="btn btn-danger btn-small" onclick="deleteTeacher(${teacher.id})">Xóa</button>

@@ -2,6 +2,13 @@
 let students = [];
 let editingStudentId = null;
 
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Load students from localStorage
 function loadStudents() {
     const stored = localStorage.getItem('students');
@@ -33,12 +40,12 @@ function renderStudents() {
     tbody.innerHTML = students.map(student => `
         <tr>
             <td>${student.id}</td>
-            <td>${student.name}</td>
+            <td>${escapeHtml(student.name)}</td>
             <td>${formatDate(student.dob)}</td>
-            <td>${student.gender}</td>
-            <td>${student.class}</td>
-            <td>${student.parent}</td>
-            <td>${student.phone}</td>
+            <td>${escapeHtml(student.gender)}</td>
+            <td>${escapeHtml(student.class)}</td>
+            <td>${escapeHtml(student.parent)}</td>
+            <td>${escapeHtml(student.phone)}</td>
             <td class="action-buttons">
                 <button class="btn btn-warning btn-small" onclick="editStudent(${student.id})">Sửa</button>
                 <button class="btn btn-danger btn-small" onclick="deleteStudent(${student.id})">Xóa</button>
@@ -50,6 +57,9 @@ function renderStudents() {
 // Format date to dd/mm/yyyy
 function formatDate(dateString) {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        return 'N/A';
+    }
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
