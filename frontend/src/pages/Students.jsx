@@ -28,7 +28,7 @@ function Students() {
     try {
       const response = await studentAPI.getAll();
       setStudents(response.data);
-    } catch (error) {
+    } catch {
       toast.error('Không thể tải danh sách học sinh');
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ function Students() {
         await studentAPI.delete(id);
         toast.success('Xóa học sinh thành công');
         fetchStudents();
-      } catch (error) {
+      } catch {
         toast.error('Không thể xóa học sinh');
       }
     }

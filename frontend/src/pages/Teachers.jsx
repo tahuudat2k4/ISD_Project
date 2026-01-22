@@ -28,7 +28,7 @@ function Teachers() {
     try {
       const response = await teacherAPI.getAll();
       setTeachers(response.data);
-    } catch (error) {
+    } catch {
       toast.error('Không thể tải danh sách giáo viên');
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ function Teachers() {
         await teacherAPI.delete(id);
         toast.success('Xóa giáo viên thành công');
         fetchTeachers();
-      } catch (error) {
+      } catch {
         toast.error('Không thể xóa giáo viên');
       }
     }
