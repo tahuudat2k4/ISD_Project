@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Hệ thống Quản lý Trường Mầm Non</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>🏫 Trường Mầm Non</h1>
+                <p>Hệ thống Quản lý Giáo viên & Học sinh</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">Tên đăng nhập</label>
+                    <input type="text" id="username" name="username" required placeholder="Nhập tên đăng nhập">
+                </div>
+                <div class="form-group">
+                    <label for="password">Mật khẩu</label>
+                    <input type="password" id="password" name="password" required placeholder="Nhập mật khẩu">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Đăng nhập</button>
+                </div>
+                <div class="login-hint">
+                    <p>Gợi ý: Tên đăng nhập: <strong>admin</strong> | Mật khẩu: <strong>admin123</strong></p>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="js/login.js"></script>
+</body>
+</html>

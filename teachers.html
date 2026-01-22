@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Giáo viên - Hệ thống Quản lý Trường Mầm Non</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🏫 Trường Mầm Non</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="teachers.html" class="nav-link active">Giáo viên</a>
+                <a href="students.html" class="nav-link">Học sinh</a>
+                <a href="#" id="logoutBtn" class="nav-link">Đăng xuất</a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Quản lý Giáo viên</h1>
+                <button class="btn btn-primary" id="addTeacherBtn">+ Thêm Giáo viên</button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Họ và tên</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>Môn dạy</th>
+                            <th>Lớp phụ trách</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teachersTableBody">
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Add/Edit Teacher -->
+    <div id="teacherModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Thêm Giáo viên</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="teacherForm">
+                <div class="form-group">
+                    <label for="teacherName">Họ và tên *</label>
+                    <input type="text" id="teacherName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="teacherEmail">Email *</label>
+                    <input type="email" id="teacherEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="teacherPhone">Số điện thoại *</label>
+                    <input type="tel" id="teacherPhone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="teacherSubject">Môn dạy *</label>
+                    <select id="teacherSubject" name="subject" required>
+                        <option value="">Chọn môn dạy</option>
+                        <option value="Toán">Toán</option>
+                        <option value="Tiếng Việt">Tiếng Việt</option>
+                        <option value="Âm nhạc">Âm nhạc</option>
+                        <option value="Mỹ thuật">Mỹ thuật</option>
+                        <option value="Thể dục">Thể dục</option>
+                        <option value="Tiếng Anh">Tiếng Anh</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="teacherClass">Lớp phụ trách *</label>
+                    <select id="teacherClass" name="class" required>
+                        <option value="">Chọn lớp</option>
+                        <option value="Mẫu giáo 3 tuổi">Mẫu giáo 3 tuổi</option>
+                        <option value="Mẫu giáo 4 tuổi">Mẫu giáo 4 tuổi</option>
+                        <option value="Mẫu giáo 5 tuổi">Mẫu giáo 5 tuổi</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/teachers.js"></script>
+</body>
+</html>

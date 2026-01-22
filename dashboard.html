@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Hệ thống Quản lý Trường Mầm Non</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🏫 Trường Mầm Non</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link active">Dashboard</a>
+                <a href="teachers.html" class="nav-link">Giáo viên</a>
+                <a href="students.html" class="nav-link">Học sinh</a>
+                <a href="#" id="logoutBtn" class="nav-link">Đăng xuất</a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p>Tổng quan hệ thống quản lý</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👨‍🏫</div>
+                    <div class="stat-info">
+                        <h3 id="totalTeachers">0</h3>
+                        <p>Tổng số giáo viên</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👶</div>
+                    <div class="stat-info">
+                        <h3 id="totalStudents">0</h3>
+                        <p>Tổng số học sinh</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎓</div>
+                    <div class="stat-info">
+                        <h3 id="totalClasses">0</h3>
+                        <p>Số lớp học</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <h3 id="avgStudentsPerClass">0</h3>
+                        <p>Trung bình học sinh/lớp</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recent-section">
+                <div class="section-header">
+                    <h2>Hoạt động gần đây</h2>
+                </div>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <span class="activity-icon">✅</span>
+                        <div class="activity-content">
+                            <p><strong>Hệ thống đã sẵn sàng</strong></p>
+                            <small>Bắt đầu quản lý giáo viên và học sinh</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
