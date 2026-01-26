@@ -1,6 +1,6 @@
 import React from 'react'
 
-const ClassPage = () => {
+const LandingPage = () => {
   return (
     <div>
       
@@ -8,4 +8,4 @@ const ClassPage = () => {
   )
 }
 
-export default ClassPage
+export default LandingPage
