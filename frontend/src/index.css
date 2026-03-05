@@ -132,3 +132,34 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sidebar scrollbar (SimpleBar) */
+[data-sidebar="content"] .simplebar-track.simplebar-vertical {
+  width: 10px;
+}
+
+[data-sidebar="content"] .simplebar-scrollbar:before {
+  background: hsl(var(--sidebar-foreground) / 0.4);
+  border-radius: 999px;
+  opacity: 1;
+}
+
+[data-sidebar="content"] .simplebar-scrollbar.simplebar-visible:before {
+  opacity: 1;
+}
+
+[data-sidebar="content"] .simplebar-track.simplebar-vertical .simplebar-scrollbar:before {
+  inset: 2px;
+}
+
+[data-sidebar="content"] .simplebar-track.simplebar-horizontal {
+  height: 8px;
+}
+
+[data-sidebar="content"] .simplebar-track.simplebar-horizontal .simplebar-scrollbar:before {
+  inset: 2px;
+}
+
+.dark [data-sidebar="content"] .simplebar-scrollbar:before {
+  background: hsl(var(--sidebar-foreground) / 0.5);
+}

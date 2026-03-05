@@ -1,0 +1,58 @@
+// Mock data for Germ (Mầm) classes
+export const mockGermClasses = [
+  {
+    id: "MAM001",
+    code: "MAM1",
+    name: "Mầm 1",
+    level: "Mầm",
+    capacity: 25,
+    currentStudents: 20,
+    mainTeacher: "Chị Hoa",
+    assistantTeacher: "Chị Lan",
+    room: "Phòng 101",
+    schedule: "7:30 - 16:30",
+    established: "2023-09-01",
+    status: "Hoạt động",
+    description: "Lớp mầm dành cho trẻ 3-4 tuổi",
+    facilities: ["Bảng xanh", "Tủ đồ chơi", "Bệ phát triển", "Nhà vệ sinh riêng"],
+    notes: "Lớp hoạt động ổn định, giáo viên nhiệt tình",
+  },
+  {
+    id: "MAM002",
+    code: "MAM2",
+    name: "Mầm 2",
+    level: "Mầm",
+    capacity: 25,
+    currentStudents: 23,
+    mainTeacher: "Chị Hương",
+    assistantTeacher: "Chị Vân",
+    room: "Phòng 102",
+    schedule: "7:30 - 16:30",
+    established: "2023-09-01",
+    status: "Hoạt động",
+    description: "Lớp mầm dành cho trẻ 4-5 tuổi",
+    facilities: ["Bảng xanh", "Tủ đồ chơi", "Bệ phát triển", "Nhà vệ sinh riêng", "Khu vui chơi"],
+    notes: "Lớp đông học sinh, cần tuyển thêm phụ trợ",
+  },
+  {
+    id: "MAM003",
+    code: "MAM3",
+    name: "Mầm 3",
+    level: "Mầm",
+    capacity: 25,
+    currentStudents: 21,
+    mainTeacher: "Chị Mai",
+    assistantTeacher: "Chị Linh",
+    room: "Phòng 103",
+    schedule: "7:30 - 16:30",
+    established: "2023-09-01",
+    status: "Hoạt động",
+    description: "Lớp mầm nâng cao dành cho trẻ 5-6 tuổi",
+    facilities: ["Bảng xanh", "Tủ đồ chơi", "Bệ phát triển", "Nhà vệ sinh riêng", "Computer"],
+    notes: "Lớp chuẩn bị cho lớp Chồi, học sinh có nền tảng tốt",
+  },
+]
+
+export const levels = ["Mầm", "Chồi", "Lá"]
+
+export const statuses = ["Hoạt động", "Tạm dừng", "Kế hoạch"]

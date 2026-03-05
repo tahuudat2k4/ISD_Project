@@ -1,5 +1,6 @@
-"use client";
 import * as React from "react"
+import SimpleBar from "simplebar-react"
+import "simplebar-react/dist/simplebar.min.css"
 import { Slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react"
@@ -343,17 +344,22 @@ function SidebarSeparator({
 
 function SidebarContent({
   className,
+  children,
   ...props
 }) {
   return (
-    <div
+    <SimpleBar
       data-slot="sidebar-content"
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "min-h-0 flex-1 group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
-      {...props} />
+      {...props}>
+      <div className="flex min-h-0 flex-col gap-2">
+        {children}
+      </div>
+    </SimpleBar>
   );
 }
 
