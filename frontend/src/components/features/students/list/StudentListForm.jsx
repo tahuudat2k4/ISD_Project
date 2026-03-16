@@ -125,7 +125,7 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
             <div className="space-y-2">
               <Label htmlFor="gender">Giới tính</Label>
               <Select value={formData.gender} onValueChange={(value) => handleChange("gender", value)}>
-                <SelectTrigger id="gender">
+                <SelectTrigger id="gender" className="w-full">
                   <SelectValue placeholder="Chọn" />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,7 +144,7 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
                   handleChange("className", selectedClass?.tenlop || "")
                 }}
               >
-                <SelectTrigger id="className">
+                <SelectTrigger id="className" className="w-full">
                   <SelectValue placeholder="Chọn lớp" />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,7 +181,7 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
             <div className="space-y-2">
               <Label htmlFor="health">Sức khỏe</Label>
               <Select value={formData.health} onValueChange={(value) => handleChange("health", value)}>
-                <SelectTrigger id="health">
+                <SelectTrigger id="health" className="w-full">
                   <SelectValue placeholder="Chọn" />
                 </SelectTrigger>
                 <SelectContent>

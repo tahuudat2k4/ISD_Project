@@ -45,9 +45,11 @@ http.interceptors.response.use(
     const originalRequest = error.config || {};
     const status = error?.response?.status;
     const isRefreshCall = originalRequest?.url?.includes("/auth/refresh");
+    const isLoginCall = originalRequest?.url?.includes("/auth/signin");
 
     // If refresh itself failed or status is not 401/403, reject
-    const shouldHandleAuth = (status === 401 || status === 403) && !isRefreshCall;
+    // Also skip interceptor for login endpoint
+    const shouldHandleAuth = (status === 401 || status === 403) && !isRefreshCall && !isLoginCall;
     if (!shouldHandleAuth) {
       if (isRefreshCall) {
         localStorage.removeItem("token");

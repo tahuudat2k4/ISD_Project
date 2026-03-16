@@ -6,6 +6,11 @@ export const teacherService = {
 		return data;
 	},
 
+	getTeacherAccountManagement: async () => {
+		const { data } = await http.get("/teachers/account-management");
+		return data;
+	},
+
 	getTeacher: async (id) => {
 		const { data } = await http.get(`/teachers/${id}`);
 		return data;
@@ -13,6 +18,11 @@ export const teacherService = {
 
 	createTeacher: async (payload) => {
 		const { data } = await http.post("/teachers", payload);
+		return data;
+	},
+
+	createTeacherAccount: async (id, payload) => {
+		const { data } = await http.post(`/teachers/${id}/account`, payload);
 		return data;
 	},
 

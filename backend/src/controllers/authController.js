@@ -29,7 +29,7 @@ export const signIn = async (req, res) => {
         if(!existingUser) {
             return res.status(401).json({
                 success: false,
-                message: "User not found"
+                message: "Không tìm thấy tài khoản "
             });
         }
         // If user exists, compare the provided password with the stored hashed password
@@ -37,7 +37,7 @@ export const signIn = async (req, res) => {
         if(!passwordMatch) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid credentials"
+                message: "Tài khoản hoặc mật khẩu không đúng"
             });
         }
         // Create access token with JWT (JSON Web Token)

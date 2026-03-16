@@ -16,6 +16,7 @@ import LeafClassPage from './pages/LeafClassPage';
 import AttendancePage from './pages/AttendancePage';
 import LessonsPage from './pages/LessonsPage';
 import EvaluationPage from './pages/EvaluationPage';
+import TeacherAccountsPage from './pages/TeacherAccountsPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 // Main application 
@@ -101,6 +102,11 @@ function App() {
             <Route path="/evaluation" element={
               <ProtectedRoute>
                 <EvaluationPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher-accounts" element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <TeacherAccountsPage />
               </ProtectedRoute>
             } />
         </Routes>

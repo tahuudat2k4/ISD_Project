@@ -32,6 +32,15 @@ export const authService = {
     return user ? JSON.parse(user) : null;
   },
 
+  hasRole: (roles = []) => {
+    const user = authService.getCurrentUser();
+    return !!user?.role && roles.includes(user.role);
+  },
+
+  isAdmin: () => {
+    return authService.hasRole(["ADMIN"]);
+  },
+
   // Kiểm tra đã đăng nhập chưa
   isAuthenticated: () => {
     return !!localStorage.getItem("token");
