@@ -1,6 +1,6 @@
 import * as React from "react"
 import { toast } from "sonner"
-import { KeyRound, LoaderCircle, Search, ShieldCheck, UserRoundPlus } from "lucide-react"
+import { Eye, EyeOff, KeyRound, LoaderCircle, RotateCcw, Search, ShieldCheck, Trash2, UserRoundPlus } from "lucide-react"
 
 import { teacherService } from "@/services/teacherService"
 import { Button } from "@/components/ui/button"
@@ -31,20 +31,34 @@ const initialFormState = {
   confirmPassword: "",
 }
 
+const initialPasswordVisibility = {
+  password: false,
+  confirmPassword: false,
+}
+
+
 export function TeacherAccountsManager() {
   const [teachers, setTeachers] = React.useState([])
   const [loading, setLoading] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [query, setQuery] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [dialogMode, setDialogMode] = React.useState("create")
   const [selectedTeacher, setSelectedTeacher] = React.useState(null)
   const [form, setForm] = React.useState(initialFormState)
+  const [showPassword, setShowPassword] = React.useState(initialPasswordVisibility)
+  const [page, setPage] = React.useState(1)
+  const [totalPages, setTotalPages] = React.useState(1)
+  const [total, setTotal] = React.useState(0)
+  const limit = 10
 
-  const loadTeachers = React.useCallback(async () => {
+  const loadTeachers = React.useCallback(async (pageNum = 1, search = "") => {
     try {
       setLoading(true)
-      const response = await teacherService.getTeacherAccountManagement()
+      const response = await teacherService.getTeacherAccountManagement({ page: pageNum, limit, query: search })
       setTeachers(response?.data || [])
+      setTotalPages(response?.pagination?.totalPages || 1)
+      setTotal(response?.pagination?.total || 0)
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || "Không thể tải danh sách tài khoản giáo viên"
       toast.error(message)
@@ -54,36 +68,35 @@ export function TeacherAccountsManager() {
   }, [])
 
   React.useEffect(() => {
-    loadTeachers()
-  }, [loadTeachers])
+    loadTeachers(page, query)
+  }, [loadTeachers, page, query])
 
-  const filteredTeachers = React.useMemo(() => {
-    const keyword = query.trim().toLowerCase()
-    if (!keyword) {
-      return teachers
-    }
+  // Xử lý tìm kiếm: reset về trang 1 khi thay đổi query
+  React.useEffect(() => {
+    setPage(1)
+  }, [query])
 
-    return teachers.filter((teacher) => {
-      return [teacher.masoGV, teacher.hotenGV, teacher.email, teacher.account?.username]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(keyword))
-    })
-  }, [teachers, query])
+  // Không cần filteredTeachers vì backend đã phân trang và lọc
+  const filteredTeachers = teachers
 
-  const openCreateDialog = (teacher) => {
+  const openDialog = (teacher, mode) => {
     setSelectedTeacher(teacher)
+    setDialogMode(mode)
     setForm({
-      username: teacher.masoGV?.toLowerCase() || "",
+      username: teacher.account?.username || teacher.masoGV?.toLowerCase() || "",
       password: "",
       confirmPassword: "",
     })
+    setShowPassword(initialPasswordVisibility)
     setDialogOpen(true)
   }
 
   const closeDialog = () => {
     setDialogOpen(false)
+    setDialogMode("create")
     setSelectedTeacher(null)
     setForm(initialFormState)
+    setShowPassword(initialPasswordVisibility)
   }
 
   const handleSubmit = async (event) => {
@@ -113,21 +126,58 @@ export function TeacherAccountsManager() {
 
     try {
       setSubmitting(true)
-      const response = await teacherService.createTeacherAccount(selectedTeacher.teacherId, {
-        username,
-        password,
-      })
+      const response = dialogMode === "create"
+        ? await teacherService.createTeacherAccount(selectedTeacher.teacherId, {
+            username,
+            password,
+          })
+        : await teacherService.resetTeacherAccountPassword(selectedTeacher.teacherId, {
+            password,
+          })
 
-      toast.success(response?.message || "Đã tạo tài khoản giáo viên")
+      toast.success(
+        response?.message || (dialogMode === "create" ? "Đã tạo tài khoản giáo viên" : "Đã đặt lại mật khẩu")
+      )
       closeDialog()
       await loadTeachers()
     } catch (error) {
-      const message = error?.response?.data?.message || error?.message || "Tạo tài khoản giáo viên thất bại"
+      const message = error?.response?.data?.message
+        || error?.message
+        || (dialogMode === "create" ? "Tạo tài khoản giáo viên thất bại" : "Đặt lại mật khẩu thất bại")
       toast.error(message)
     } finally {
       setSubmitting(false)
     }
   }
+
+  const handleDeleteAccount = async (teacher) => {
+    const confirmed = globalThis.confirm(`Xóa tài khoản của ${teacher.hotenGV} (${teacher.masoGV})?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const response = await teacherService.deleteTeacherAccount(teacher.teacherId)
+      toast.success(response?.message || "Đã xóa tài khoản giáo viên")
+      await loadTeachers()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Xóa tài khoản giáo viên thất bại"
+      toast.error(message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const togglePasswordVisibility = (field) => {
+    setShowPassword((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }))
+  }
+
+  const isCreateMode = dialogMode === "create"
 
   return (
     <>
@@ -139,8 +189,11 @@ export function TeacherAccountsManager() {
               Quản lý tài khoản giáo viên
             </CardTitle>
             <CardDescription>
-              Tạo thông tin đăng nhập cho các giáo viên chưa có tài khoản trong hệ thống.
+              Admin có thể tạo, đặt lại mật khẩu và xóa tài khoản đăng nhập của giáo viên.
             </CardDescription>
+            <p className="text-xs text-muted-foreground">
+              Mật khẩu hiện tại không thể xem lại vì hệ thống chỉ lưu ở dạng mã hóa. Khi cần, hãy đặt lại mật khẩu mới và dùng nút hiện/ẩn để kiểm tra trước khi lưu.
+            </p>
           </div>
           <div className="relative w-full md:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -160,7 +213,7 @@ export function TeacherAccountsManager() {
                   <TableHead>Mã giáo viên</TableHead>
                   <TableHead>Họ tên</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Trạng thái tài khoản</TableHead>
+                  <TableHead>Trạng thái làm việc</TableHead>
                   <TableHead>Tên đăng nhập</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
@@ -191,27 +244,64 @@ export function TeacherAccountsManager() {
                       </TableCell>
                       <TableCell>{teacher.email || "Chưa có email"}</TableCell>
                       <TableCell>
-                        {teacher.hasAccount ? (
-                          <Badge className="bg-emerald-600 hover:bg-emerald-600">Đã có tài khoản</Badge>
+                        {teacher.status === "Đang làm việc" ? (
+                          <Badge className="bg-green-600 hover:bg-green-700">Đang làm việc</Badge>
                         ) : (
-                          <Badge variant="secondary">Chưa tạo</Badge>
+                          <Badge variant="secondary">{teacher.status || "Chưa rõ"}</Badge>
                         )}
                       </TableCell>
                       <TableCell>{teacher.account?.username || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          onClick={() => openCreateDialog(teacher)}
-                          disabled={teacher.hasAccount}>
-                          <UserRoundPlus className="mr-2 h-4 w-4" />
-                          Tạo tài khoản
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          {teacher.hasAccount ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openDialog(teacher, "reset")}
+                                disabled={submitting}>
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Đặt lại mật khẩu
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteAccount(teacher)}
+                                disabled={submitting}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Xóa tài khoản
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => openDialog(teacher, "create")}
+                              disabled={submitting}>
+                              <UserRoundPlus className="mr-2 h-4 w-4" />
+                              Tạo tài khoản
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
+          </div>
+          {/* PHÂN TRANG */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Trang {page} / {totalPages} (Tổng: {total} giáo viên)
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading}>
+                Trước
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages || loading}>
+                Sau
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -228,11 +318,11 @@ export function TeacherAccountsManager() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-blue-600" />
-              Tạo tài khoản cho giáo viên
+              {isCreateMode ? "Tạo tài khoản cho giáo viên" : "Đặt lại mật khẩu giáo viên"}
             </DialogTitle>
             <DialogDescription>
               {selectedTeacher
-                ? `Thiết lập tài khoản đăng nhập cho ${selectedTeacher.hotenGV} (${selectedTeacher.masoGV}).`
+                ? `${isCreateMode ? "Thiết lập" : "Cập nhật"} tài khoản đăng nhập cho ${selectedTeacher.hotenGV} (${selectedTeacher.masoGV}).`
                 : "Thiết lập tài khoản đăng nhập cho giáo viên."}
             </DialogDescription>
           </DialogHeader>
@@ -246,31 +336,54 @@ export function TeacherAccountsManager() {
                 onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))}
                 placeholder="Ví dụ: gv001"
                 autoComplete="username"
+                disabled={!isCreateMode || submitting}
               />
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="password">Mật khẩu</Label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-                placeholder="Tối thiểu 6 ký tự"
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword.password ? "text" : "password"}
+                  value={form.password}
+                  onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
+                  placeholder="Tối thiểu 6 ký tự"
+                  autoComplete="new-password"
+                  disabled={submitting}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility("password")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword.password ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                  {showPassword.password ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={form.confirmPassword}
-                onChange={(event) => setForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
-                placeholder="Nhập lại mật khẩu"
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword.confirmPassword ? "text" : "password"}
+                  value={form.confirmPassword}
+                  onChange={(event) => setForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+                  placeholder="Nhập lại mật khẩu"
+                  autoComplete="new-password"
+                  disabled={submitting}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility("confirmPassword")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword.confirmPassword ? "Ẩn xác nhận mật khẩu" : "Hiện xác nhận mật khẩu"}>
+                  {showPassword.confirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
 
             <DialogFooter>
@@ -281,10 +394,10 @@ export function TeacherAccountsManager() {
                 {submitting ? (
                   <>
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                    Đang tạo...
+                    {isCreateMode ? "Đang tạo..." : "Đang cập nhật..."}
                   </>
                 ) : (
-                  "Tạo tài khoản"
+                  isCreateMode ? "Tạo tài khoản" : "Lưu mật khẩu mới"
                 )}
               </Button>
             </DialogFooter>

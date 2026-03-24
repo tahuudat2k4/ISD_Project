@@ -2,6 +2,18 @@ import bcrypt from 'bcrypt';
 import Teacher from '../models/Teacher.js';
 import User from '../models/User.js';
 
+const validatePassword = (password) => {
+	if (!password) {
+		return 'Mật khẩu là bắt buộc';
+	}
+
+	if (password.length < 6) {
+		return 'Mật khẩu phải có ít nhất 6 ký tự';
+	}
+
+	return null;
+};
+
 export const getTeachers = async (req, res) => {
 	try {
 		const items = await Teacher.find();
@@ -14,37 +26,60 @@ export const getTeachers = async (req, res) => {
 
 export const getTeacherAccountManagement = async (req, res) => {
 	try {
-		const teachers = await Teacher.find().sort({ hotenGV: 1, masoGV: 1 }).lean();
-		const teacherIds = teachers.map((teacher) => teacher._id);
-		const accounts = await User.find({ teacherId: { $in: teacherIds } })
-			.select('teacherId username isActive createdAt')
-			.lean();
+		   // Lấy page và limit từ query, mặc định page=1, limit=10
+		   const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+		   const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+		   const skip = (page - 1) * limit;
 
-		const accountMap = new Map(accounts.map((account) => [String(account.teacherId), account]));
-		const data = teachers.map((teacher) => {
-			const account = accountMap.get(String(teacher._id));
+		   // Đếm tổng số giáo viên
+		   const total = await Teacher.countDocuments();
 
-			return {
-				teacherId: teacher._id,
-				masoGV: teacher.masoGV,
-				hotenGV: teacher.hotenGV,
-				email: teacher.email || '',
-				sdt: teacher.sdt || '',
-				subject: teacher.subject || '',
-				class: teacher.class || '',
-				hasAccount: Boolean(account),
-				account: account
-					? {
-						id: account._id,
-						username: account.username,
-						isActive: account.isActive,
-						createdAt: account.createdAt,
-					}
-					: null,
-			};
-		});
+		   // Lấy danh sách giáo viên, sắp xếp tăng dần theo mã giáo viên
+		   const teachers = await Teacher.find()
+			   .sort({ masoGV: 1 })
+			   .skip(skip)
+			   .limit(limit)
+			   .lean();
 
-		return res.status(200).json({ success: true, data });
+		   const teacherIds = teachers.map((teacher) => teacher._id);
+		   const accounts = await User.find({ teacherId: { $in: teacherIds } })
+			   .select('teacherId username isActive createdAt')
+			   .lean();
+
+		   const accountMap = new Map(accounts.map((account) => [String(account.teacherId), account]));
+		   const data = teachers.map((teacher) => {
+			   const account = accountMap.get(String(teacher._id));
+			   return {
+				   teacherId: teacher._id,
+				   masoGV: teacher.masoGV,
+				   hotenGV: teacher.hotenGV,
+				   email: teacher.email || '',
+				   sdt: teacher.sdt || '',
+				   subject: teacher.subject || '',
+				   class: teacher.class || '',
+				   status: teacher.status || '',
+				   hasAccount: Boolean(account),
+				   account: account
+					   ? {
+						   id: account._id,
+						   username: account.username,
+						   isActive: account.isActive,
+						   createdAt: account.createdAt,
+					   }
+					   : null,
+			   };
+		   });
+
+		   return res.status(200).json({
+			   success: true,
+			   data,
+			   pagination: {
+				   total,
+				   page,
+				   limit,
+				   totalPages: Math.ceil(total / limit)
+			   }
+		   });
 	} catch (error) {
 		console.log('Error fetching teacher account management data:', error);
 		return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -114,10 +149,11 @@ export const createTeacherAccount = async (req, res) => {
 			});
 		}
 
-		if (normalizedPassword.length < 6) {
+		const passwordError = validatePassword(normalizedPassword);
+		if (passwordError) {
 			return res.status(400).json({
 				success: false,
-				message: 'Mật khẩu phải có ít nhất 6 ký tự',
+				message: passwordError,
 			});
 		}
 
@@ -167,6 +203,63 @@ export const createTeacherAccount = async (req, res) => {
 	} catch (error) {
 		console.log('Error creating teacher account:', error);
 		return res.status(400).json({ success: false, message: error.message || 'Yêu cầu không hợp lệ' });
+	}
+};
+
+export const resetTeacherAccountPassword = async (req, res) => {
+	try {
+		const normalizedPassword = req.body?.password?.trim();
+		const passwordError = validatePassword(normalizedPassword);
+
+		if (passwordError) {
+			return res.status(400).json({
+				success: false,
+				message: passwordError,
+			});
+		}
+
+		const teacher = await Teacher.findById(req.params.id).select('_id hotenGV masoGV').lean();
+		if (!teacher) {
+			return res.status(404).json({ success: false, message: 'Teacher not found' });
+		}
+
+		const account = await User.findOne({ teacherId: teacher._id });
+		if (!account) {
+			return res.status(404).json({ success: false, message: 'Giáo viên này chưa có tài khoản' });
+		}
+
+		account.password = await bcrypt.hash(normalizedPassword, 10);
+		await account.save();
+
+		return res.status(200).json({
+			success: true,
+			message: `Đã đặt lại mật khẩu cho ${teacher.hotenGV} (${teacher.masoGV})`,
+		});
+	} catch (error) {
+		console.log('Error resetting teacher account password:', error);
+		return res.status(400).json({ success: false, message: error.message || 'Yêu cầu không hợp lệ' });
+	}
+};
+
+export const deleteTeacherAccount = async (req, res) => {
+	try {
+		const teacher = await Teacher.findById(req.params.id).select('_id hotenGV masoGV').lean();
+		if (!teacher) {
+			return res.status(404).json({ success: false, message: 'Teacher not found' });
+		}
+
+		const deletedAccount = await User.findOneAndDelete({ teacherId: teacher._id });
+		if (!deletedAccount) {
+			return res.status(404).json({ success: false, message: 'Giáo viên này chưa có tài khoản để xóa' });
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: `Đã xóa tài khoản của ${teacher.hotenGV} (${teacher.masoGV})`,
+		});
+	} catch (error) {
+		console.log('Error deleting teacher account:', error);
+		return res.status(500).json({ success: false, message: 'Internal Server Error' });
 	}
 };
 

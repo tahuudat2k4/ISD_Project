@@ -34,7 +34,9 @@ function InfoRow({ icon: Icon, label, value }) {
 export function BudClassDetails({ open, onOpenChange, budClass }) {
   if (!budClass) return null
 
-  const capacityPercent = (budClass.currentStudents / budClass.capacity) * 100
+  const capacityPercent = budClass.capacity > 0
+    ? (budClass.currentStudents / budClass.capacity) * 100
+    : 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,13 +114,17 @@ export function BudClassDetails({ open, onOpenChange, budClass }) {
 
           <div>
             <h3 className="font-medium mb-3 text-sm">Cơ sở vật chất</h3>
-            <div className="flex flex-wrap gap-2">
-              {budClass.facilities.map((facility) => (
-                <Badge key={facility} variant="secondary">
-                  {facility}
-                </Badge>
-              ))}
-            </div>
+            {budClass.facilities.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {budClass.facilities.map((facility) => (
+                  <Badge key={facility} variant="secondary">
+                    {facility}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Chưa cập nhật cơ sở vật chất</p>
+            )}
           </div>
 
           <Separator />
@@ -126,7 +132,7 @@ export function BudClassDetails({ open, onOpenChange, budClass }) {
           <div>
             <h3 className="font-medium mb-2 text-sm">Ghi chú</h3>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-900">{budClass.notes}</p>
+              <p className="text-sm text-blue-900">{budClass.notes || "Chưa có ghi chú"}</p>
             </div>
           </div>
         </div>

@@ -41,7 +41,7 @@ const TeacherAccountsPage = () => {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tài Khoản Giáo Viên</h1>
             <p className="text-sm text-muted-foreground">
-              Chỉ admin mới có thể tạo tài khoản đăng nhập cho giáo viên trong hệ thống.
+              Chỉ admin mới có thể tạo, đặt lại mật khẩu và xóa tài khoản giáo viên trong hệ thống.
             </p>
           </div>
           <TeacherAccountsManager />

@@ -21,7 +21,7 @@ function getHealthBadge(health) {
   }
 }
 
-export function StudentListTable({ students, onEdit, onDelete, onViewDetails }) {
+export function StudentListTable({ students, onEdit, onDelete, onViewDetails, canManageStudents }) {
   if (!students || students.length === 0) {
     return (
       <Card>
@@ -86,21 +86,25 @@ export function StudentListTable({ students, onEdit, onDelete, onViewDetails }) 
                       >
                         <Eye className="size-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => onEdit(student)}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => onDelete(student)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      {canManageStudents ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onEdit(student)}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onDelete(student)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>

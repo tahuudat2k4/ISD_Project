@@ -1,4 +1,12 @@
 import Class from '../models/Class.js';
+import Grade from '../models/Grade.js';
+import Teacher from '../models/Teacher.js';
+
+const DEFAULT_GRADES = {
+	MAM: 'Mầm',
+	CHOI: 'Chồi',
+	LA: 'Lá',
+};
 
 export const getClasses = async (req, res) => {
 	try {
@@ -23,11 +31,54 @@ export const getClassById = async (req, res) => {
 
 export const createClass = async (req, res) => {
 	try {
-		const created = await Class.create(req.body);
-		return res.status(201).json({ success: true, data: created });
+		const { malop, tenlop, khoiId, makhoi, giaoVienId } = req.body || {};
+
+		let resolvedGradeId = khoiId;
+
+		if (!resolvedGradeId && makhoi) {
+			const normalizedCode = String(makhoi).trim().toUpperCase();
+			let grade = await Grade.findOne({ makhoi: normalizedCode });
+
+			if (!grade && DEFAULT_GRADES[normalizedCode]) {
+				grade = await Grade.create({
+					makhoi: normalizedCode,
+					tenkhoi: DEFAULT_GRADES[normalizedCode],
+				});
+			}
+
+			resolvedGradeId = grade?._id;
+		}
+
+		if (!malop || !tenlop || !resolvedGradeId || !giaoVienId) {
+			return res.status(400).json({
+				success: false,
+				message: 'Mã lớp, tên lớp, khối lớp và giáo viên chủ nhiệm là bắt buộc',
+			});
+		}
+
+		const existing = await Class.findOne({ malop: malop.trim() });
+		if (existing) {
+			return res.status(400).json({
+				success: false,
+				message: 'Mã lớp đã tồn tại',
+			});
+		}
+
+		const created = await Class.create({
+			malop: malop.trim(),
+			tenlop: tenlop.trim(),
+			khoiId: resolvedGradeId,
+			giaoVienId,
+		});
+		await Teacher.findByIdAndUpdate(giaoVienId, { class: tenlop.trim() });
+		const item = await Class.findById(created._id).populate('khoiId').populate('giaoVienId');
+		return res.status(201).json({ success: true, message: 'Tạo lớp học thành công', data: item });
 	} catch (error) {
 		console.log('Error creating class:', error);
-		return res.status(400).json({ success: false, message: error.message });
+		if (error?.code === 11000) {
+			return res.status(400).json({ success: false, message: 'Mã lớp đã tồn tại' });
+		}
+		return res.status(400).json({ success: false, message: error.message || 'Không thể tạo lớp học' });
 	}
 };
 

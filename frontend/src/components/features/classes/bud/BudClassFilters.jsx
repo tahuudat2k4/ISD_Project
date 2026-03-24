@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { statuses } from "./budClassesData"
+import { CLASS_STATUSES } from "../classViewModel"
 
 export function BudClassFilters({
   searchTerm,
@@ -41,7 +41,7 @@ export function BudClassFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
-                {statuses.map((status) => (
+                {CLASS_STATUSES.map((status) => (
                   <SelectItem key={status} value={status}>
                     {status}
                   </SelectItem>

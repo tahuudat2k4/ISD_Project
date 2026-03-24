@@ -3,10 +3,9 @@ import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { authService } from "@/services/authService"
 import {
@@ -38,6 +37,7 @@ export function NavUser({
 
   const handleLogout = () => {
     authService.logout()
+    toast.success("Đăng xuất thành công")
     navigate("/")
   }
 

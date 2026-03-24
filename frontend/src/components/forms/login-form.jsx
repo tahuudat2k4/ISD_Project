@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -31,8 +32,11 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      await authService.login(username, password)
-      // Đăng nhập thành công, chuyển hướng đến dashboard
+      // Xóa toàn bộ khoảng trắng trong username trước khi gửi đi
+      const cleanUsername = username.replace(/\s+/g, "");
+      const cleanPassword = password.replace(/\s+/g, "");
+      const response = await authService.login(cleanUsername, cleanPassword)
+      toast.success(response?.message || "Đăng nhập thành công")
       navigate("/dashboard")
     } catch (err) {
       setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.")

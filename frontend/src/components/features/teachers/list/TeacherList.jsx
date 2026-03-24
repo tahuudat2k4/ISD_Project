@@ -35,6 +35,7 @@ import { TeacherDetail } from "./TeacherDetail"
 import { EditTeacherForm } from "./EditTeacherForm"
 import { AddTeacherForm } from "./AddTeacherForm"
 import { teacherService } from "@/services/teacherService"
+import { authService } from "@/services/authService"
 
 export function TeacherList() {
   const [rows, setRows] = React.useState([])
@@ -45,6 +46,7 @@ export function TeacherList() {
   const [columnVisibility, setColumnVisibility] = React.useState({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [addOpen, setAddOpen] = React.useState(false)
+  const isAdmin = authService.isAdmin()
 
   const loadTeachers = React.useCallback(async () => {
     try {
@@ -155,9 +157,11 @@ export function TeacherList() {
         const status = row.getValue("status")
         return (
           <div className="flex justify-center">
-            <Badge variant={status === "active" ? "default" : "secondary"}>
-              {status === "active" ? "Đang làm việc" : "Nghỉ phép"}
-            </Badge>
+            {status === "active" ? (
+              <Badge className="bg-green-600 hover:bg-green-700 text-white">Đang làm việc</Badge>
+            ) : (
+              <Badge variant="secondary">Nghỉ phép</Badge>
+            )}
           </div>
         )
       },
@@ -185,9 +189,11 @@ export function TeacherList() {
               kinhnghiem: updatedTeacher.experience || "",
               subject: updatedTeacher.subject || "",
               class: updatedTeacher.class || "",
+              status: updatedTeacher.status || "active"
             }
             const res = await teacherService.updateTeacher(teacher.id, payload)
             if (res?.success) {
+              // Đợi backend cập nhật xong rồi reload danh sách
               await loadTeachers()
             } else {
               throw new Error(res?.message || "Cập nhật giáo viên thất bại")
@@ -232,10 +238,14 @@ export function TeacherList() {
                 <DropdownMenuItem onClick={() => setDetailOpen(true)}>
                   Xem chi tiết
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                  Chỉnh sửa
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600" onClick={handleDelete}>Xóa</DropdownMenuItem>
+                {isAdmin ? (
+                  <>
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                      Chỉnh sửa
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600" onClick={handleDelete}>Xóa</DropdownMenuItem>
+                  </>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
             <TeacherDetail 
@@ -243,19 +253,26 @@ export function TeacherList() {
               open={detailOpen} 
               onOpenChange={setDetailOpen}
             />
-            <EditTeacherForm
-              teacher={teacher}
-              open={editOpen}
-              onOpenChange={setEditOpen}
-              onSave={handleSave}
-            />
+            {isAdmin ? (
+              <EditTeacherForm
+                teacher={teacher}
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                onSave={handleSave}
+              />
+            ) : null}
           </>
         )
       },
     },
-  ], [loadTeachers])
+  ], [isAdmin, loadTeachers])
 
   const handleAddTeacher = async (form) => {
+    if (!isAdmin) {
+      alert("Chỉ quản trị viên mới có thể thêm giáo viên")
+      return
+    }
+
     try {
       // Map form fields to backend schema
       const payload = {
@@ -323,7 +340,7 @@ export function TeacherList() {
             className="pl-8 max-w-sm"
           />
         </div>
-        <Button onClick={() => setAddOpen(true)}>Thêm Giáo Viên</Button>
+        {isAdmin ? <Button onClick={() => setAddOpen(true)}>Thêm Giáo Viên</Button> : null}
       </div>
       <div className="rounded-md border">
         <Table>
@@ -395,11 +412,13 @@ export function TeacherList() {
           </Button>
         </div>
       </div>
-      <AddTeacherForm
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        onSave={handleAddTeacher}
-      />
+      {isAdmin ? (
+        <AddTeacherForm
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          onSave={handleAddTeacher}
+        />
+      ) : null}
     </div>
   )
 }

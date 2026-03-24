@@ -28,7 +28,7 @@ function getScoreBadge(score) {
   }
 }
 
-function TeacherCard({ teacher, onEvaluate, onViewDetails }) {
+function TeacherCard({ teacher, onEvaluate, onViewDetails, canEvaluateTeachers }) {
   return (
     <div className="rounded-lg border p-3">
       <div className="flex items-start justify-between gap-3">
@@ -67,7 +67,7 @@ function TeacherCard({ teacher, onEvaluate, onViewDetails }) {
             <Eye className="size-3.5 mr-1" />
             Xem chi tiết
           </Button>
-        ) : (
+        ) : canEvaluateTeachers ? (
           <Button
             size="sm"
             className="flex-1"
@@ -76,13 +76,22 @@ function TeacherCard({ teacher, onEvaluate, onViewDetails }) {
             <FileText className="size-3.5 mr-1" />
             Đánh giá
           </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            disabled
+          >
+            Chờ admin đánh giá
+          </Button>
         )}
       </div>
     </div>
   )
 }
 
-export function EvaluationList({ teachers, onEvaluate, onViewDetails }) {
+export function EvaluationList({ teachers, onEvaluate, onViewDetails, canEvaluateTeachers }) {
   if (!teachers || teachers.length === 0) {
     return (
       <Card>
@@ -105,6 +114,7 @@ export function EvaluationList({ teachers, onEvaluate, onViewDetails }) {
             teacher={teacher}
             onEvaluate={onEvaluate}
             onViewDetails={onViewDetails}
+            canEvaluateTeachers={canEvaluateTeachers}
           />
         ))}
       </CardContent>

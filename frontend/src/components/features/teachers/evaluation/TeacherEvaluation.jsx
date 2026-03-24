@@ -6,6 +6,7 @@ import { EvaluationForm } from "./EvaluationForm"
 import { EvaluationDetails } from "./EvaluationDetails"
 import { mockTeachers, mockStats } from "./evaluationData"
 import { toast } from "sonner"
+import { authService } from "@/services/authService"
 
 export function TeacherEvaluation() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -14,6 +15,7 @@ export function TeacherEvaluation() {
   const [selectedTeacher, setSelectedTeacher] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const canEvaluateTeachers = authService.isAdmin()
 
   // Filter teachers based on search and filters
   const filteredTeachers = mockTeachers.filter((teacher) => {
@@ -25,6 +27,11 @@ export function TeacherEvaluation() {
   })
 
   const handleEvaluate = (teacher) => {
+    if (!canEvaluateTeachers) {
+      toast.info("Chỉ quản trị viên mới có thể tạo đánh giá giáo viên")
+      return
+    }
+
     setSelectedTeacher(teacher)
     setIsFormOpen(true)
   }
@@ -35,6 +42,10 @@ export function TeacherEvaluation() {
   }
 
   const handleSubmitEvaluation = (evaluationData) => {
+    if (!canEvaluateTeachers) {
+      return
+    }
+
     console.log("Evaluation submitted:", evaluationData)
     toast.success("Đánh giá đã được lưu thành công!")
     setIsFormOpen(false)
@@ -66,15 +77,18 @@ export function TeacherEvaluation() {
         teachers={filteredTeachers}
         onEvaluate={handleEvaluate}
         onViewDetails={handleViewDetails}
+        canEvaluateTeachers={canEvaluateTeachers}
       />
 
       {/* Evaluation Form Modal */}
-      <EvaluationForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        teacher={selectedTeacher}
-        onSubmit={handleSubmitEvaluation}
-      />
+      {canEvaluateTeachers ? (
+        <EvaluationForm
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          teacher={selectedTeacher}
+          onSubmit={handleSubmitEvaluation}
+        />
+      ) : null}
 
       {/* Evaluation Details Modal */}
       <EvaluationDetails

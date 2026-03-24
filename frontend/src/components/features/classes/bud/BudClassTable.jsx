@@ -21,7 +21,7 @@ function getStatusBadge(status) {
   }
 }
 
-export function BudClassTable({ classes, onEdit, onDelete, onViewDetails }) {
+export function BudClassTable({ classes, onEdit, onDelete, onViewDetails, canManageClasses }) {
   if (!classes || classes.length === 0) {
     return (
       <Card>
@@ -83,21 +83,25 @@ export function BudClassTable({ classes, onEdit, onDelete, onViewDetails }) {
                       >
                         <Eye className="size-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => onEdit(classItem)}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => onDelete(classItem)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      {canManageClasses ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onEdit(classItem)}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onDelete(classItem)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>

@@ -7,10 +7,13 @@ import { StudentListTable } from "./StudentListTable"
 import { StudentListForm } from "./StudentListForm"
 import { StudentListDetails } from "./StudentListDetails"
 import { studentService } from "@/services/studentService"
+import { classService } from "@/services/classService"
 import { toast } from "sonner"
+import { authService } from "@/services/authService"
 
 export function StudentListFeature() {
   const [students, setStudents] = useState([])
+  const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedGrade, setSelectedGrade] = useState("all")
@@ -18,6 +21,7 @@ export function StudentListFeature() {
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const canManageStudents = authService.isAdmin()
 
   // Fetch students from database
   const loadStudents = async () => {
@@ -25,7 +29,7 @@ export function StudentListFeature() {
       setLoading(true)
       const res = await studentService.getStudents()
       const items = res?.data || []
-      // Map database fields to frontend format
+      // Map database fields to frontend format, lấy thêm mã lớp và mã khối
       const mapped = items.map((s) => ({
         id: s._id,
         code: s.masoHS,
@@ -35,6 +39,8 @@ export function StudentListFeature() {
         address: s.diachi || "",
         phone: s.sdt || "",
         className: s.lopId?.tenlop || "",
+        classCode: s.lopId?.malop || "",
+        gradeCode: s.lopId?.khoiId?.makhoi || "",
         health: s.suckhoe || "",
         notes: s.ghichu || "",
         enrollmentDate: s.ngaynhaphoc || "",
@@ -49,24 +55,57 @@ export function StudentListFeature() {
     }
   }
 
-  useEffect(() => {
-    loadStudents()
-  }, [])
+  // Lấy danh sách lớp thật
+  const loadClasses = async () => {
+    try {
+      const res = await classService.getClasses();
+      const items = res?.data || [];
+      setClasses(items.map(c => ({
+        id: c._id,
+        code: c.malop,
+        name: c.tenlop,
+        gradeCode: c.khoiId?.makhoi || ""
+      })));
+    } catch (error) {
+      setClasses([]);
+    }
+  }
 
-  // Filter students based on search and filters
+  useEffect(() => {
+    loadStudents();
+    loadClasses();
+  }, []);
+
+  // Lọc danh sách lớp theo khối đã chọn
+  const filteredClassOptions = selectedGrade === "all"
+    ? classes
+    : classes.filter(cls => (cls.gradeCode || "").toLowerCase() === selectedGrade);
+
+  // Filter students: lọc đúng ý định người dùng
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.code.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesGrade = selectedGrade === "all" || 
-      student.className.toLowerCase().includes(selectedGrade)
-    
-    const matchesClass = selectedClass === "all" || 
-      student.className.toLowerCase().replace(" ", "") === selectedClass
+      student.code.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesGrade && matchesClass
-  })
+    // Nếu chỉ chọn khối
+    if (selectedGrade !== "all" && selectedClass === "all") {
+      return matchesSearch && student.gradeCode && student.gradeCode.toLowerCase() === selectedGrade;
+    }
+    // Nếu chỉ chọn lớp
+    if (selectedGrade === "all" && selectedClass !== "all") {
+      return matchesSearch && student.classCode && student.classCode.toLowerCase() === selectedClass;
+    }
+    // Nếu chọn cả hai
+    if (selectedGrade !== "all" && selectedClass !== "all") {
+      return (
+        matchesSearch &&
+        student.gradeCode && student.gradeCode.toLowerCase() === selectedGrade &&
+        student.classCode && student.classCode.toLowerCase() === selectedClass
+      );
+    }
+    // Nếu không chọn gì
+    return matchesSearch;
+  });
 
   // Calculate stats from real data
   const stats = {
@@ -77,16 +116,28 @@ export function StudentListFeature() {
   }
 
   const handleAddNew = () => {
+    if (!canManageStudents) {
+      return
+    }
+
     setSelectedStudent(null)
     setIsFormOpen(true)
   }
 
   const handleEdit = (student) => {
+    if (!canManageStudents) {
+      return
+    }
+
     setSelectedStudent(student)
     setIsFormOpen(true)
   }
 
   const handleDelete = async (student) => {
+    if (!canManageStudents) {
+      return
+    }
+
     if (confirm(`Bạn có chắc muốn xóa học sinh ${student.name}?`)) {
       try {
         await studentService.deleteStudent(student.id)
@@ -105,6 +156,11 @@ export function StudentListFeature() {
   }
 
   const handleSubmit = async (studentData) => {
+    if (!canManageStudents) {
+      toast.error("Chỉ quản trị viên mới có thể cập nhật hồ sơ học sinh")
+      return
+    }
+
     try {
       const payload = {
         masoHS: studentData.code,
@@ -140,10 +196,12 @@ export function StudentListFeature() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">Danh sách học sinh</h1>
         </div>
-        <Button onClick={handleAddNew} size="sm" className="gap-1.5">
-          <Plus className="size-3.5" />
-          Thêm học sinh
-        </Button>
+        {canManageStudents ? (
+          <Button onClick={handleAddNew} size="sm" className="gap-1.5">
+            <Plus className="size-3.5" />
+            Thêm học sinh
+          </Button>
+        ) : null}
       </div>
 
       {/* Filters */}
@@ -154,6 +212,7 @@ export function StudentListFeature() {
         onGradeChange={setSelectedGrade}
         selectedClass={selectedClass}
         onClassChange={setSelectedClass}
+        classOptions={filteredClassOptions}
       />
 
       {/* Stats */}
@@ -166,15 +225,18 @@ export function StudentListFeature() {
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
         loading={loading}
+        canManageStudents={canManageStudents}
       />
 
       {/* Form Modal */}
-      <StudentListForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        student={selectedStudent}
-        onSubmit={handleSubmit}
-      />
+      {canManageStudents ? (
+        <StudentListForm
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          student={selectedStudent}
+          onSubmit={handleSubmit}
+        />
+      ) : null}
 
       {/* Details Modal */}
       <StudentListDetails

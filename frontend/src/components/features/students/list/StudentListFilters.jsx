@@ -15,7 +15,8 @@ export function StudentListFilters({
   selectedGrade, 
   onGradeChange,
   selectedClass,
-  onClassChange 
+  onClassChange,
+  classOptions = []
 }) {
   return (
     <Card>
@@ -50,12 +51,9 @@ export function StudentListFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả lớp</SelectItem>
-                <SelectItem value="mam1">Mầm 1</SelectItem>
-                <SelectItem value="mam2">Mầm 2</SelectItem>
-                <SelectItem value="mam3">Mầm 3</SelectItem>
-                <SelectItem value="choi1">Chồi 1</SelectItem>
-                <SelectItem value="choi2">Chồi 2</SelectItem>
-                <SelectItem value="la1">Lá 1</SelectItem>
+                {classOptions.map((cls) => (
+                  <SelectItem key={cls.code} value={cls.code}>{cls.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

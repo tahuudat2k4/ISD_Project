@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { authService } from "@/services/authService"
 
 const assignments = [
   {
@@ -174,6 +175,8 @@ function renderStatus(status) {
 }
 
 export function TeachingAssignments() {
+  const isAdmin = authService.isAdmin()
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -191,10 +194,12 @@ export function TeachingAssignments() {
             <Filter className="size-3.5" />
             <span className="hidden sm:inline">Lọc</span>
           </Button>
-          <Button size="sm" className="gap-1.5">
-            <Plus className="size-3.5" />
-            <span className="hidden sm:inline">Tạo mới</span>
-          </Button>
+          {isAdmin ? (
+            <Button size="sm" className="gap-1.5">
+              <Plus className="size-3.5" />
+              <span className="hidden sm:inline">Tạo mới</span>
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -335,9 +340,11 @@ export function TeachingAssignments() {
                               <Button variant="outline" size="xs" className="text-[11px] h-6">
                                 Xem
                               </Button>
-                              <Button variant="ghost" size="xs" className="text-[11px] h-6 hidden sm:inline-flex">
-                                Sửa
-                              </Button>
+                              {isAdmin ? (
+                                <Button variant="ghost" size="xs" className="text-[11px] h-6 hidden sm:inline-flex">
+                                  Sửa
+                                </Button>
+                              ) : null}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -457,9 +464,7 @@ export function TeachingAssignments() {
                       {teacher.role} · {teacher.classes} lớp
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">
-                    Đề xuất
-                  </Button>
+                  {isAdmin ? <Button size="sm" variant="outline">Đề xuất</Button> : null}
                 </div>
               ))}
             </CardContent>

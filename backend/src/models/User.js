@@ -8,7 +8,8 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Teacher"
   },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  loginAttempts: { type: Number, default: 0 } // Số lần đăng nhập sai
 }, { timestamps: true });
 
 export default mongoose.model("User", UserSchema);

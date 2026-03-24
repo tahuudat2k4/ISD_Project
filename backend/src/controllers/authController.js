@@ -32,6 +32,7 @@ export const signIn = async (req, res) => {
                 message: "Không tìm thấy tài khoản "
             });
         }
+
         // If user exists, compare the provided password with the stored hashed password
         const passwordMatch = await bcrypt.compare(password, existingUser.password);
         if(!passwordMatch) {
@@ -46,7 +47,7 @@ export const signIn = async (req, res) => {
         // Respond with access token and user info to the client 
         return res.status(200).json({
             success: true,
-            message: `User ${existingUser.username} signed in successfully !`,
+            message: `Đăng nhập thành công. Xin chào ${existingUser.username}!`,
             token: accessToken,
             user: {
                 id: existingUser._id,
@@ -67,7 +68,7 @@ export const signOut = async (req, res) => {
     try {
         return res.status(200).json({
             success: true,
-            message: "User signed out successfully"
+            message: "Đăng xuất thành công"
         });
     } catch (error) {
         console.log("Error during user signout:", error);
@@ -115,7 +116,7 @@ export const refreshToken = async (req, res) => {
 
             return res.status(200).json({
                 success: true,
-                message: 'Token refreshed successfully',
+                message: 'Làm mới phiên đăng nhập thành công',
                 token: newAccessToken,
                 user: {
                     id: user._id,

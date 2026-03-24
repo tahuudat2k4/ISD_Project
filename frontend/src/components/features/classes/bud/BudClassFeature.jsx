@@ -1,21 +1,69 @@
-import { useState, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BudClassFilters } from "./BudClassFilters"
 import { BudClassStats } from "./BudClassStats"
 import { BudClassTable } from "./BudClassTable"
 import { BudClassDetails } from "./BudClassDetails"
-import { mockBudClasses } from "./budClassesData"
+import { ClassCreateDialog } from "../ClassCreateDialog"
 import { toast } from "sonner"
+import { authService } from "@/services/authService"
+import { classService } from "@/services/classService"
+import { gradeService } from "@/services/gradeService"
+import { studentService } from "@/services/studentService"
+import { buildClassViewModels, findGradeByKeyword } from "../classViewModel"
+import { teacherService } from "@/services/teacherService"
 
 export function BudClassFeature() {
+  const gradeCode = "CHOI"
+  const [classes, setClasses] = useState([])
+  const [teachers, setTeachers] = useState([])
+  const [grades, setGrades] = useState([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createSubmitting, setCreateSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedClass, setSelectedClass] = useState(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const isAdmin = authService.isAdmin()
+  const targetGrade = useMemo(() => findGradeByKeyword(grades, "chồi"), [grades])
+
+  const loadClasses = useCallback(async () => {
+    try {
+      const [classResponse, studentResponse] = await Promise.all([
+        classService.getClasses(),
+        studentService.getStudents(),
+      ])
+
+      setClasses(buildClassViewModels(classResponse?.data || [], studentResponse?.data || [], "chồi"))
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Không thể tải danh sách lớp chồi"
+      toast.error(message)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadClasses()
+  }, [loadClasses])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      return
+    }
+
+    Promise.all([teacherService.getTeachers(), gradeService.getGrades()])
+      .then(([teacherResponse, gradeResponse]) => {
+        setTeachers(teacherResponse?.data || [])
+        setGrades(gradeResponse?.data || [])
+      })
+      .catch((error) => {
+        const message = error?.response?.data?.message || error?.message || "Không thể tải dữ liệu thêm lớp"
+        toast.error(message)
+      })
+  }, [isAdmin])
 
   const filteredClasses = useMemo(() => {
-    return mockBudClasses.filter((budClass) => {
+    return classes.filter((budClass) => {
       const matchesSearch =
         budClass.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         budClass.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -25,7 +73,7 @@ export function BudClassFeature() {
 
       return matchesSearch && matchesStatus
     })
-  }, [searchTerm, selectedStatus])
+  }, [classes, searchTerm, selectedStatus])
 
   const stats = useMemo(() => {
     return {
@@ -43,20 +91,60 @@ export function BudClassFeature() {
   }, [filteredClasses])
 
   const handleEdit = (budClass) => {
+    if (!isAdmin) {
+      return
+    }
+
     toast.info("Chức năng chỉnh sửa sắp ra mắt")
     console.log("Edit class:", budClass)
   }
 
   const handleDelete = (budClass) => {
-    if (confirm(`Bạn có chắc muốn xóa lớp ${budClass.name}?`)) {
-      toast.success("Đã xóa lớp học thành công!")
-      console.log("Delete class:", budClass)
+    if (!isAdmin) {
+      return
     }
+
+    if (!confirm(`Bạn có chắc muốn xóa lớp ${budClass.name}?`)) {
+      return
+    }
+
+    classService.deleteClass(budClass.id)
+      .then((response) => {
+        toast.success(response?.message || "Đã xóa lớp học thành công!")
+        loadClasses()
+      })
+      .catch((error) => {
+        const message = error?.response?.data?.message || error?.message || "Xóa lớp học thất bại"
+        toast.error(message)
+      })
   }
 
   const handleViewDetails = (budClass) => {
     setSelectedClass(budClass)
     setIsDetailsOpen(true)
+  }
+
+  const handleCreateClass = async (payload) => {
+    if (!payload.malop || !payload.tenlop || !payload.giaoVienId) {
+      toast.error("Vui lòng nhập đầy đủ mã lớp, tên lớp và giáo viên chủ nhiệm")
+      return
+    }
+
+    try {
+      setCreateSubmitting(true)
+      const response = await classService.createClass({
+        ...payload,
+        ...(targetGrade?._id ? { khoiId: targetGrade._id } : { makhoi: gradeCode }),
+      })
+      toast.success(response?.message || "Tạo lớp học thành công")
+      setCreateOpen(false)
+      await loadClasses()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Không thể tạo lớp học"
+      toast.error(message)
+    } finally {
+      setCreateSubmitting(false)
+    }
   }
 
   return (
@@ -65,10 +153,12 @@ export function BudClassFeature() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">Quản lý lớp Chồi</h1>
         </div>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="size-3.5" />
-          Thêm lớp
-        </Button>
+        {isAdmin ? (
+          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={createSubmitting}>
+            <Plus className="size-3.5" />
+            Thêm lớp
+          </Button>
+        ) : null}
       </div>
 
       <BudClassFilters
@@ -85,12 +175,22 @@ export function BudClassFeature() {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
+        canManageClasses={isAdmin}
       />
 
       <BudClassDetails
         open={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
         budClass={selectedClass}
+      />
+
+      <ClassCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSubmit={handleCreateClass}
+        gradeLabel={targetGrade?.tenkhoi || "Chồi"}
+        teachers={teachers}
+        submitting={createSubmitting}
       />
     </div>
   )

@@ -12,7 +12,8 @@ const TeacherSchema = new mongoose.Schema({
     trinhdohocvan: { type: String },
     kinhnghiem: { type: String },
     subject: { type: String },
-    class: { type: String }
+    class: { type: String },
+    status: { type: String, default: "Đang làm việc" } // Trạng thái làm việc
 }, { timestamps: true });
 
 export default mongoose.model("Teacher", TeacherSchema);

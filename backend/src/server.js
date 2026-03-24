@@ -5,6 +5,7 @@ import cors from 'cors';
 import { connectDB } from './config/db.js';
 import authRoute from './routes/authRoute.js';
 import classRoute from './routes/classRoute.js';
+import gradeRoute from './routes/gradeRoute.js';
 import studentRoute from './routes/studentRoute.js';
 import teacherRoute from './routes/teacherRoute.js';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoute);
 app.use(protectedRoute);
 // protected routes
 app.use('/api/classes', classRoute);
+app.use('/api/grades', gradeRoute);
 app.use('/api/students', studentRoute);
 app.use('/api/teachers', teacherRoute);
 

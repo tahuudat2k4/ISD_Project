@@ -34,7 +34,9 @@ function InfoRow({ icon: Icon, label, value }) {
 export function GermClassDetails({ open, onOpenChange, germClass }) {
   if (!germClass) return null
 
-  const capacityPercent = (germClass.currentStudents / germClass.capacity) * 100
+  const capacityPercent = germClass.capacity > 0
+    ? (germClass.currentStudents / germClass.capacity) * 100
+    : 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,13 +119,17 @@ export function GermClassDetails({ open, onOpenChange, germClass }) {
           {/* Facilities */}
           <div>
             <h3 className="font-medium mb-3 text-sm">Cơ sở vật chất</h3>
-            <div className="flex flex-wrap gap-2">
-              {germClass.facilities.map((facility) => (
-                <Badge key={facility} variant="secondary">
-                  {facility}
-                </Badge>
-              ))}
-            </div>
+            {germClass.facilities.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {germClass.facilities.map((facility) => (
+                  <Badge key={facility} variant="secondary">
+                    {facility}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Chưa cập nhật cơ sở vật chất</p>
+            )}
           </div>
 
           <Separator />
@@ -132,7 +138,7 @@ export function GermClassDetails({ open, onOpenChange, germClass }) {
           <div>
             <h3 className="font-medium mb-2 text-sm">Ghi chú</h3>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-900">{germClass.notes}</p>
+              <p className="text-sm text-blue-900">{germClass.notes || "Chưa có ghi chú"}</p>
             </div>
           </div>
         </div>

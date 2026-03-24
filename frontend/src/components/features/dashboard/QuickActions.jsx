@@ -13,9 +13,11 @@ import {
   Trophy 
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { authService } from "@/services/authService"
 
 export function QuickActions() {
   const navigate = useNavigate()
+  const isAdmin = authService.isAdmin()
 
   const actions = [
     {
@@ -31,6 +33,7 @@ export function QuickActions() {
       icon: UserPlus,
       color: "bg-green-500",
       url: "/students",
+      adminOnly: true,
     },
     {
       title: "Bài Giảng",
@@ -46,7 +49,7 @@ export function QuickActions() {
       color: "bg-purple-500",
       url: "/evaluation",
     },
-  ]
+  ].filter((action) => !action.adminOnly || isAdmin)
 
   return (
     <Card>
