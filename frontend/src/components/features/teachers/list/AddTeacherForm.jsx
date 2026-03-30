@@ -96,13 +96,68 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
     const newErrors = {}
 
     if (!formData.masoGV.trim()) newErrors.masoGV = "Mã số giáo viên là bắt buộc"
-    if (!formData.name.trim()) newErrors.name = "Họ và tên là bắt buộc"
+
+    // Validate name: không cho phép nhiều space liên tiếp, không cho phép đầu/cuối có space
+    const name = formData.name
+    if (!name.trim()) {
+      newErrors.name = "Họ và tên là bắt buộc"
+    } else if (/^\s|\s$/.test(name)) {
+      newErrors.name = "Tên không được có khoảng trắng ở đầu hoặc cuối"
+    } else if (/\s{2,}/.test(name)) {
+      newErrors.name = "Tên không được có nhiều hơn 1 khoảng trắng giữa các từ"
+    }
+
     if (!formData.email.trim()) newErrors.email = "Email là bắt buộc"
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       newErrors.email = "Email không hợp lệ"
-    if (!formData.phone.trim()) newErrors.phone = "Số điện thoại là bắt buộc"
-    if (!formData.address.trim()) newErrors.address = "Địa chỉ là bắt buộc"
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Số điện thoại là bắt buộc"
+    } else if (!/^0[35789][0-9]{8}$/.test(formData.phone)) {
+      newErrors.phone = "Số điện thoại không hợp lệ"
+    } else if (/\s/.test(formData.phone)) {
+      newErrors.phone = "Số điện thoại không được chứa khoảng trắng"
+    }
+    const address = formData.address
+    if (!address.trim()) {
+      newErrors.address = "Địa chỉ là bắt buộc"
+    } else if (/^\s|\s$/.test(address)) {
+      newErrors.address = "Địa chỉ không được có khoảng trắng ở đầu hoặc cuối"
+    } else if (/\s{2,}/.test(address)) {
+      newErrors.address = "Địa chỉ không được có nhiều hơn 1 khoảng trắng liên tiếp"
+    } else if (!/^[\p{L}\d\s,./\-_]{5,100}$/u.test(address)) {
+      newErrors.address = "Địa chỉ chỉ cho phép chữ, số, dấu cách, dấu phẩy, chấm, gạch ngang, gạch dưới, dấu / và từ 5-100 ký tự"
+    }
     if (!formData.gioitinh) newErrors.gioitinh = "Giới tính là bắt buộc"
+
+    // Validate degree (trình độ) - không bắt buộc, chỉ kiểm tra nếu có nhập
+    const degree = formData.degree
+    if (degree && degree.trim()) {
+      if (/^\s|\s$/.test(degree)) {
+        newErrors.degree = "Trình độ không được có khoảng trắng ở đầu hoặc cuối"
+      } else if (/\s{2,}/.test(degree)) {
+        newErrors.degree = "Trình độ không được có nhiều hơn 1 khoảng trắng liên tiếp"
+      } else if (!/^[\p{L}\d\s.,\-_]{2,50}$/u.test(degree)) {
+        newErrors.degree = "Trình độ chỉ cho phép chữ, số, dấu cách, dấu chấm, phẩy, gạch ngang, gạch dưới và tối đa 50 ký tự"
+      }
+    }
+
+    // Kiểm tra ngày sinh và ngày vào làm không được là ngày trong tương lai
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (formData.dateOfBirth) {
+      const dob = new Date(formData.dateOfBirth)
+      dob.setHours(0, 0, 0, 0)
+      if (dob > today) {
+        newErrors.dateOfBirth = "Ngày sinh không không hợp lệ"
+      }
+    }
+    if (formData.joinDate) {
+      const join = new Date(formData.joinDate)
+      join.setHours(0, 0, 0, 0)
+      if (join > today) {
+        newErrors.joinDate = "Ngày vào làm không hợp lệ"
+      }
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -220,6 +275,9 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
                       }
                       placeholder="DD/MM/YYYY"
                     />
+                    {errors.dateOfBirth && (
+                      <p className="text-xs text-red-500">{errors.dateOfBirth}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -310,6 +368,9 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
                       }
                       placeholder="DD/MM/YYYY"
                     />
+                    {errors.joinDate && (
+                      <p className="text-xs text-red-500">{errors.joinDate}</p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="degree" className="text-xs font-semibold">

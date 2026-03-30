@@ -49,13 +49,15 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
   const handleInputChange = (e) => {
     const input = e.target.value
     setInputValue(input)
-    
-    // Try to parse and validate
-    const parsed = dayjs(input, "DD/MM/YYYY")
-    if (parsed.isValid()) {
-      onChange(parsed.format("YYYY-MM-DD"))
-      setCurrentMonth(parsed)
+    // Chỉ parse khi đúng định dạng DD/MM/YYYY (8 số, 2 dấu /)
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(input)) {
+      const parsed = dayjs(input, "DD/MM/YYYY")
+      if (parsed.isValid()) {
+        onChange(parsed.format("YYYY-MM-DD"))
+        setCurrentMonth(parsed)
+      }
     }
+    // Nếu không đúng định dạng, không gọi onChange
   }
 
   const getDaysInMonth = (date) => {

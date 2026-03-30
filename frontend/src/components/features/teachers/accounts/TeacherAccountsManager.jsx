@@ -39,6 +39,8 @@ const initialPasswordVisibility = {
 
 export function TeacherAccountsManager() {
   const [teachers, setTeachers] = React.useState([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [teacherToDelete, setTeacherToDelete] = React.useState(null)
   const [loading, setLoading] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [query, setQuery] = React.useState("")
@@ -109,15 +111,58 @@ export function TeacherAccountsManager() {
       return
     }
 
+    // Xác thực tên đăng nhập
     if (!username || !password) {
       toast.error("Tên đăng nhập và mật khẩu là bắt buộc")
       return
     }
+    if (username.length < 4 || username.length > 30) {
+      toast.error("Tên đăng nhập phải từ 4-30 ký tự")
+      return
+    }
+    if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+      toast.error("Tên đăng nhập chỉ cho phép chữ, số, dấu chấm, gạch dưới, gạch ngang")
+      return
+    }
+    if (/^[._-]|[._-]$/.test(username)) {
+      toast.error("Tên đăng nhập không được bắt đầu hoặc kết thúc bằng dấu chấm, gạch dưới, gạch ngang")
+      return
+    }
+    if (/(\.|_|-){2,}/.test(username)) {
+      toast.error("Tên đăng nhập không được có 2 ký tự đặc biệt liên tiếp")
+      return
+    }
+    if (/\s/.test(username)) {
+      toast.error("Tên đăng nhập không được chứa khoảng trắng")
+      return
+    }
 
+    // Xác thực mật khẩu
     if (password.length < 6) {
       toast.error("Mật khẩu phải có ít nhất 6 ký tự")
       return
     }
+    if (!/[A-Za-z]/.test(password)) {
+      toast.error("Mật khẩu phải chứa ít nhất 1 chữ cái")
+      return
+    }
+    if (!/[0-9]/.test(password)) {
+      toast.error("Mật khẩu phải chứa ít nhất 1 số")
+      return
+    }
+    if (/\s/.test(password)) {
+      toast.error("Mật khẩu không được chứa khoảng trắng")
+      return
+    }
+    if (password.toLowerCase() === username.toLowerCase()) {
+      toast.error("Mật khẩu không được trùng tên đăng nhập")
+      return
+    }
+    // Nếu muốn chỉ cho phép chữ và số, bỏ comment dòng dưới:
+    // if (!/^[A-Za-z0-9]+$/.test(password)) {
+    //   toast.error("Mật khẩu chỉ cho phép chữ và số")
+    //   return
+    // }
 
     if (password !== form.confirmPassword.trim()) {
       toast.error("Mật khẩu xác nhận không khớp")
@@ -151,15 +196,33 @@ export function TeacherAccountsManager() {
   }
 
   const handleDeleteAccount = async (teacher) => {
-    const confirmed = globalThis.confirm(`Xóa tài khoản của ${teacher.hotenGV} (${teacher.masoGV})?`)
-
-    if (!confirmed) {
+    // Chỉ cho phép xóa nếu trạng thái là inactive/Không hoạt động
+    if (
+      teacher.status === "active" ||
+      teacher.status === "Đang làm việc"
+    ) {
+      setTeacherToDelete(teacher)
+      setDeleteDialogOpen(true)
       return
     }
+    setTeacherToDelete(teacher)
+    setDeleteDialogOpen(true)
+  }
 
+  const confirmDeleteAccount = async () => {
+    if (!teacherToDelete) return
+    // Nếu trạng thái vẫn là active thì không cho xóa
+    if (
+      teacherToDelete.status === "active" ||
+      teacherToDelete.status === "Đang làm việc"
+    ) {
+      setDeleteDialogOpen(false)
+      toast.error("Vui lòng chuyển trạng thái giáo viên sang 'Không hoạt động' trong danh sách giáo viên trước khi xóa tài khoản!")
+      return
+    }
     try {
       setSubmitting(true)
-      const response = await teacherService.deleteTeacherAccount(teacher.teacherId)
+      const response = await teacherService.deleteTeacherAccount(teacherToDelete.teacherId)
       toast.success(response?.message || "Đã xóa tài khoản giáo viên")
       await loadTeachers()
     } catch (error) {
@@ -167,6 +230,8 @@ export function TeacherAccountsManager() {
       toast.error(message)
     } finally {
       setSubmitting(false)
+      setDeleteDialogOpen(false)
+      setTeacherToDelete(null)
     }
   }
 
@@ -244,11 +309,23 @@ export function TeacherAccountsManager() {
                       </TableCell>
                       <TableCell>{teacher.email || "Chưa có email"}</TableCell>
                       <TableCell>
-                        {teacher.status === "Đang làm việc" ? (
-                          <Badge className="bg-green-600 hover:bg-green-700">Đang làm việc</Badge>
-                        ) : (
-                          <Badge variant="secondary">{teacher.status || "Chưa rõ"}</Badge>
-                        )}
+                        {(() => {
+                          let label, badgeProps
+                          if (teacher.status === "active" || teacher.status === "Đang làm việc") {
+                            label = "Đang làm việc"
+                            badgeProps = { className: "bg-green-600 hover:bg-green-700 text-white" }
+                          } else if (teacher.status === "leave" || teacher.status === "Nghỉ phép") {
+                            label = "Nghỉ phép"
+                            badgeProps = { variant: "secondary" }
+                          } else if (teacher.status === "inactive" || teacher.status === "Không hoạt động") {
+                            label = "Không hoạt động"
+                            badgeProps = { variant: "destructive" }
+                          } else {
+                            label = teacher.status || "Chưa rõ"
+                            badgeProps = { variant: "secondary" }
+                          }
+                          return <Badge {...badgeProps}>{label}</Badge>
+                        })()}
                       </TableCell>
                       <TableCell>{teacher.account?.username || "-"}</TableCell>
                       <TableCell className="text-right">
@@ -267,10 +344,40 @@ export function TeacherAccountsManager() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleDeleteAccount(teacher)}
-                                disabled={submitting}>
+                                disabled={submitting}
+                              >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Xóa tài khoản
                               </Button>
+                                  {/* Popup xác nhận xóa tài khoản */}
+                                  <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Xác nhận xóa tài khoản</DialogTitle>
+                                      </DialogHeader>
+                                      {teacherToDelete && (teacherToDelete.status === "active" || teacherToDelete.status === "Đang làm việc") ? (
+                                        <div className="text-red-600 font-medium py-2">
+                                          Tài khoản giáo viên <b>{teacherToDelete.hotenGV}</b> ({teacherToDelete.masoGV}) hiện đang ở trạng thái <b>Đang làm việc</b>.<br/>
+                                          Vui lòng chuyển trạng thái giáo viên sang <b>Không hoạt động</b> trong danh sách giáo viên trước khi xóa tài khoản!
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          Bạn có chắc chắn muốn xóa tài khoản của <b>{teacherToDelete?.hotenGV}</b> ({teacherToDelete?.masoGV}) không?<br/>
+                                          Hành động này không thể hoàn tác.
+                                        </div>
+                                      )}
+                                      <DialogFooter>
+                                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={submitting}>
+                                          Hủy
+                                        </Button>
+                                        {teacherToDelete && !(teacherToDelete.status === "active" || teacherToDelete.status === "Đang làm việc") && (
+                                          <Button variant="destructive" onClick={confirmDeleteAccount} disabled={submitting}>
+                                            Xóa tài khoản
+                                          </Button>
+                                        )}
+                                      </DialogFooter>
+                                    </DialogContent>
+                                  </Dialog>
                             </>
                           ) : (
                             <Button

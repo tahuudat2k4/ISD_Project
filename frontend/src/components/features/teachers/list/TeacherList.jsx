@@ -36,6 +36,8 @@ import { EditTeacherForm } from "./EditTeacherForm"
 import { AddTeacherForm } from "./AddTeacherForm"
 import { teacherService } from "@/services/teacherService"
 import { authService } from "@/services/authService"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export function TeacherList() {
   const [rows, setRows] = React.useState([])
@@ -155,13 +157,23 @@ export function TeacherList() {
       header: () => <div className="text-center">Trạng Thái</div>,
       cell: ({ row }) => {
         const status = row.getValue("status")
+        let label, badgeProps
+        if (status === "active") {
+          label = "Đang làm việc"
+          badgeProps = { className: "bg-green-600 hover:bg-green-700 text-white" }
+        } else if (status === "leave") {
+          label = "Nghỉ phép"
+          badgeProps = { variant: "secondary" }
+        } else if (status === "inactive") {
+          label = "Không hoạt động"
+          badgeProps = { variant: "destructive" }
+        } else {
+          label = status || "Chưa rõ"
+          badgeProps = { variant: "secondary" }
+        }
         return (
           <div className="flex justify-center">
-            {status === "active" ? (
-              <Badge className="bg-green-600 hover:bg-green-700 text-white">Đang làm việc</Badge>
-            ) : (
-              <Badge variant="secondary">Nghỉ phép</Badge>
-            )}
+            <Badge {...badgeProps}>{label}</Badge>
           </div>
         )
       },
@@ -205,18 +217,25 @@ export function TeacherList() {
           }
         }
 
-        const handleDelete = async () => {
+        // Popup xác nhận xóa giáo viên
+        const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+        const handleDelete = () => {
+          setDeleteDialogOpen(true)
+        }
+        const confirmDelete = async () => {
           try {
-            if (!confirm("Bạn có chắc muốn xóa giáo viên này?")) return
             const res = await teacherService.deleteTeacher(teacher.id)
             if (res?.success) {
               await loadTeachers()
+              toast.success("Đã xóa giáo viên thành công")
             } else {
               throw new Error(res?.message || "Xóa giáo viên thất bại")
             }
           } catch (e) {
             console.error("Delete teacher failed:", e)
-            alert(e?.message || "Xóa giáo viên thất bại")
+            toast.error(e?.message || "Xóa giáo viên thất bại")
+          } finally {
+            setDeleteDialogOpen(false)
           }
         }
 
@@ -261,6 +280,19 @@ export function TeacherList() {
                 onSave={handleSave}
               />
             ) : null}
+            {/* Popup xác nhận xóa giáo viên */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Xác nhận xóa giáo viên</DialogTitle>
+                </DialogHeader>
+                <div>Bạn có chắc chắn muốn xóa giáo viên <b>{teacher.name}</b> ({teacher.masoGV}) không? Hành động này không thể hoàn tác.</div>
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
+                  <Button variant="destructive" onClick={confirmDelete}>Xóa</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         )
       },
