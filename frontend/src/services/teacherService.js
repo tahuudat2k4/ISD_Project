@@ -45,6 +45,11 @@ export const teacherService = {
 		return data;
 	},
 
+	updateMyProfile: async (payload) => {
+		const { data } = await http.put('/teachers/me', payload);
+		return data;
+	},
+
 	deleteTeacher: async (id) => {
 		const { data } = await http.delete(`/teachers/${id}`);
 		return data;

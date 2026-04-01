@@ -3,6 +3,11 @@ import mongoose from "mongoose";
 const StudentSchema = new mongoose.Schema({
   masoHS: { type: String, required: true, unique: true },
   hotenHS: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ["Đang học", "Nghỉ học", "Nghỉ phép"],
+    default: "Đang học",
+  },
   gioitinh: { type: String },
   ngaysinh: { type: Date },
   ngaynhaphoc: { type: Date },

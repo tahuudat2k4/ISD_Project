@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LeafClassFilters } from "./LeafClassFilters"
 import { LeafClassStats } from "./LeafClassStats"
 import { LeafClassTable } from "./LeafClassTable"
 import { LeafClassDetails } from "./LeafClassDetails"
 import { ClassCreateDialog } from "../ClassCreateDialog"
+import { ClassEditDialog } from "../ClassEditDialog"
+import { ClassDeleteDialog } from "../ClassDeleteDialog"
 import { toast } from "sonner"
 import { authService } from "@/services/authService"
 import { classService } from "@/services/classService"
@@ -21,9 +22,15 @@ export function LeafClassFeature() {
   const [grades, setGrades] = useState([])
   const [createOpen, setCreateOpen] = useState(false)
   const [createSubmitting, setCreateSubmitting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedClass, setSelectedClass] = useState(null)
+  const [editingClass, setEditingClass] = useState(null)
+  const [deletingClass, setDeletingClass] = useState(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const isAdmin = authService.isAdmin()
   const targetGrade = useMemo(() => findGradeByKeyword(grades, "lá"), [grades])
@@ -95,8 +102,8 @@ export function LeafClassFeature() {
       return
     }
 
-    toast.info("Chức năng chỉnh sửa sắp ra mắt")
-    console.log("Edit class:", leafClass)
+    setEditingClass(leafClass)
+    setEditOpen(true)
   }
 
   const handleDelete = (leafClass) => {
@@ -104,19 +111,8 @@ export function LeafClassFeature() {
       return
     }
 
-    if (!confirm(`Bạn có chắc muốn xóa lớp ${leafClass.name}?`)) {
-      return
-    }
-
-    classService.deleteClass(leafClass.id)
-      .then((response) => {
-        toast.success(response?.message || "Đã xóa lớp học thành công!")
-        loadClasses()
-      })
-      .catch((error) => {
-        const message = error?.response?.data?.message || error?.message || "Xóa lớp học thất bại"
-        toast.error(message)
-      })
+    setDeletingClass(leafClass)
+    setDeleteOpen(true)
   }
 
   const handleViewDetails = (leafClass) => {
@@ -147,6 +143,54 @@ export function LeafClassFeature() {
     }
   }
 
+  const handleUpdateClass = async (payload) => {
+    if (!editingClass) {
+      return
+    }
+
+    if (!payload.malop || !payload.tenlop || !payload.giaoVienId) {
+      toast.error("Vui lòng nhập đầy đủ mã lớp, tên lớp và giáo viên chủ nhiệm")
+      return
+    }
+
+    try {
+      setEditSubmitting(true)
+      const response = await classService.updateClass(editingClass.id, {
+        ...payload,
+        khoiId: targetGrade?._id || editingClass.gradeId,
+      })
+      toast.success(response?.message || "Cập nhật lớp học thành công")
+      setEditOpen(false)
+      setEditingClass(null)
+      await loadClasses()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Không thể cập nhật lớp học"
+      toast.error(message)
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingClass) {
+      return
+    }
+
+    try {
+      setDeleteSubmitting(true)
+      const response = await classService.deleteClass(deletingClass.id)
+      toast.success(response?.message || "Đã xóa lớp học thành công!")
+      setDeleteOpen(false)
+      setDeletingClass(null)
+      await loadClasses()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Xóa lớp học thất bại"
+      toast.error(message)
+    } finally {
+      setDeleteSubmitting(false)
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -161,13 +205,6 @@ export function LeafClassFeature() {
         ) : null}
       </div>
 
-      <LeafClassFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
-      />
-
       <LeafClassStats stats={stats} />
 
       <LeafClassTable
@@ -176,6 +213,10 @@ export function LeafClassFeature() {
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
         canManageClasses={isAdmin}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
       />
 
       <LeafClassDetails
@@ -191,6 +232,24 @@ export function LeafClassFeature() {
         gradeLabel={targetGrade?.tenkhoi || "Lá"}
         teachers={teachers}
         submitting={createSubmitting}
+      />
+
+      <ClassEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSubmit={handleUpdateClass}
+        gradeLabel={targetGrade?.tenkhoi || "Lá"}
+        teachers={teachers}
+        classItem={editingClass}
+        submitting={editSubmitting}
+      />
+
+      <ClassDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        classItem={deletingClass}
+        onConfirm={handleConfirmDelete}
+        submitting={deleteSubmitting}
       />
     </div>
   )

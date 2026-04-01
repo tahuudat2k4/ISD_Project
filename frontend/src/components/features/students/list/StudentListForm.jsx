@@ -20,20 +20,36 @@ import {
 } from "@/components/ui/select"
 import { classService } from "@/services/classService"
 
+const STUDENT_STATUSES = ["Đang học", "Nghỉ học", "Nghỉ phép"]
+
+const getInitialFormData = () => ({
+  code: "",
+  name: "",
+  status: "Đang học",
+  gender: "",
+  dob: "",
+  address: "",
+  phone: "",
+  className: "",
+  classId: "",
+  health: "",
+  notes: "",
+  enrollmentDate: "",
+})
+
+const normalizeStudentForForm = (student) => ({
+  ...getInitialFormData(),
+  ...student,
+  status: student?.status || "Đang học",
+  dob: student?.dobValue || student?.dob || "",
+  classId: student?.classId || student?.raw?.lopId?._id || "",
+  className: student?.className || student?.raw?.lopId?.tenlop || "",
+  enrollmentDate: student?.enrollmentDateValue || student?.enrollmentDate || "",
+})
+
 export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
   const [classes, setClasses] = useState([])
-  const [formData, setFormData] = useState({
-    code: "",
-    name: "",
-    gender: "",
-    dob: "",
-    address: "",
-    phone: "",
-    className: "",
-    classId: "",
-    health: "",
-    notes: "",
-  })
+  const [formData, setFormData] = useState(getInitialFormData())
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -51,20 +67,9 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
 
   useEffect(() => {
     if (student) {
-      setFormData(student)
+      setFormData(normalizeStudentForForm(student))
     } else {
-      setFormData({
-        code: "",
-        name: "",
-        gender: "",
-        dob: "",
-        address: "",
-        phone: "",
-        className: "",
-        classId: "",
-        health: "",
-        notes: "",
-      })
+      setFormData(getInitialFormData())
     }
   }, [student])
 
@@ -72,16 +77,19 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
-    onSubmit(formData)
-    onOpenChange(false)
+  const handleSubmit = async () => {
+    const isSuccess = await onSubmit(formData)
+
+    if (isSuccess !== false) {
+      onOpenChange(false)
+    }
   }
 
   const isFormValid = formData.code && formData.name && formData.classId
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{student ? "Cập nhật học sinh" : "Thêm học sinh mới"}</DialogTitle>
           <DialogDescription>
@@ -89,8 +97,8 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-4 py-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 md:col-span-2">
             <div className="space-y-2">
               <Label htmlFor="code">Mã số *</Label>
               <Input
@@ -111,7 +119,7 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="name">Họ tên *</Label>
             <Input
               id="name"
@@ -121,7 +129,7 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
             <div className="space-y-2">
               <Label htmlFor="gender">Giới tính</Label>
               <Select value={formData.gender} onValueChange={(value) => handleChange("gender", value)}>
@@ -134,28 +142,61 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
             <div className="space-y-2">
-              <Label htmlFor="className">Lớp *</Label>
-              <Select 
-                value={formData.classId} 
-                onValueChange={(value) => {
-                  const selectedClass = classes.find(c => c._id === value)
-                  handleChange("classId", value)
-                  handleChange("className", selectedClass?.tenlop || "")
-                }}
-              >
-                <SelectTrigger id="className" className="w-full">
-                  <SelectValue placeholder="Chọn lớp" />
+              <Label htmlFor="status">Trạng thái</Label>
+              <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
+                <SelectTrigger id="status" className="w-full">
+                  <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls._id} value={cls._id}>
-                      {cls.tenlop}
+                  {STUDENT_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="className">Lớp *</Label>
+            <Select 
+              value={formData.classId} 
+              onValueChange={(value) => {
+                const selectedClass = classes.find(c => c._id === value)
+                handleChange("classId", value)
+                handleChange("className", selectedClass?.tenlop || "")
+              }}
+            >
+              <SelectTrigger id="className" className="w-full">
+                <SelectValue placeholder="Chọn lớp" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((cls) => (
+                  <SelectItem key={cls._id} value={cls._id}>
+                    {cls.tenlop}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="health">Sức khỏe</Label>
+            <Select value={formData.health} onValueChange={(value) => handleChange("health", value)}>
+              <SelectTrigger id="health" className="w-full">
+                <SelectValue placeholder="Chọn" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Tốt">Tốt</SelectItem>
+                <SelectItem value="Khá">Khá</SelectItem>
+                <SelectItem value="Trung bình">Trung bình</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -168,32 +209,17 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input
-                id="phone"
-                placeholder="0123456789"
-                value={formData.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="health">Sức khỏe</Label>
-              <Select value={formData.health} onValueChange={(value) => handleChange("health", value)}>
-                <SelectTrigger id="health" className="w-full">
-                  <SelectValue placeholder="Chọn" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Tốt">Tốt</SelectItem>
-                  <SelectItem value="Khá">Khá</SelectItem>
-                  <SelectItem value="Trung bình">Trung bình</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Số điện thoại</Label>
+            <Input
+              id="phone"
+              placeholder="0123456789"
+              value={formData.phone}
+              onChange={(e) => handleChange("phone", e.target.value)}
+            />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="notes">Ghi chú</Label>
             <Textarea
               id="notes"

@@ -23,7 +23,7 @@ import { Save, X } from "lucide-react"
 import dayjs from "dayjs"
 import { DatePicker } from "@/components/ui/date-picker"
 
-export function EditTeacherForm({ teacher, open, onOpenChange, onSave }) {
+export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProfile = false }) {
   const [formData, setFormData] = React.useState({
     masoGV: "",
     name: "",
@@ -257,6 +257,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave }) {
                       onChange={handleChange}
                       placeholder="VD: GV001"
                       required
+                      disabled={isOwnProfile}
                     />
                   </div>
                   <div className="space-y-2">
@@ -437,6 +438,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave }) {
                     onChange={handleChange}
                     placeholder="Toán - Tiếng Việt"
                     required
+                    disabled={isOwnProfile}
                   />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -451,6 +453,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave }) {
                       onChange={handleChange}
                       placeholder="Mầm 1A"
                       required
+                      disabled={isOwnProfile}
                     />
                   </div>
                   <div className="space-y-2">

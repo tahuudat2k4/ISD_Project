@@ -43,6 +43,13 @@ const getTeacherName = (teacher) => {
   return teacher.hotenGV || teacher.name || teacher.username || "Chưa phân công"
 }
 
+const compareClassCodes = (firstCode = "", secondCode = "") => {
+  return String(firstCode).localeCompare(String(secondCode), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  })
+}
+
 export const buildClassViewModels = (classes = [], students = [], gradeKeyword) => {
   const studentCountByClassId = new Map()
 
@@ -60,7 +67,8 @@ export const buildClassViewModels = (classes = [], students = [], gradeKeyword) 
     .filter((classItem) => matchesGrade(classItem?.khoiId, gradeKeyword))
     .map((classItem) => {
       const currentStudents = studentCountByClassId.get(String(classItem._id)) || 0
-      const capacity = Math.max(DEFAULT_CAPACITY, currentStudents)
+      const configuredCapacity = Number(classItem.succhua) > 0 ? Number(classItem.succhua) : DEFAULT_CAPACITY
+      const capacity = Math.max(configuredCapacity, currentStudents)
       const gradeName = classItem?.khoiId?.tenkhoi || gradeKeyword
 
       return {
@@ -69,15 +77,21 @@ export const buildClassViewModels = (classes = [], students = [], gradeKeyword) 
         name: classItem.tenlop,
         description: `Khối ${gradeName}`,
         mainTeacher: getTeacherName(classItem.giaoVienId),
-        assistantTeacher: "Chưa cập nhật",
+        mainTeacherId: classItem?.giaoVienId?._id || classItem?.giaoVienId || "",
+        gradeId: classItem?.khoiId?._id || classItem?.khoiId || "",
+        gradeName,
+        assistantTeacher: classItem.giaovienphutro || "Chưa cập nhật",
         currentStudents,
         capacity,
-        room: "Chưa cập nhật",
-        status: "Hoạt động",
-        schedule: "Chưa cập nhật",
-        established: formatDate(classItem.createdAt),
-        facilities: [],
-        notes: "Chưa có ghi chú",
+        room: classItem.phonghoc || "Chưa cập nhật",
+        status: classItem.status || "Hoạt động",
+        schedule: classItem.giohoc || "Chưa cập nhật",
+        established: formatDate(classItem.ngaythanhlap || classItem.createdAt),
+        establishedRaw: classItem.ngaythanhlap || classItem.createdAt || "",
+        facilities: Array.isArray(classItem.cosovatchat) ? classItem.cosovatchat : [],
+        notes: classItem.ghichu || "Chưa có ghi chú",
+        raw: classItem,
       }
     })
+    .sort((firstClass, secondClass) => compareClassCodes(firstClass.code, secondClass.code))
 }

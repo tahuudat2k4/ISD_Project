@@ -16,8 +16,13 @@ const validatePassword = (password) => {
 
 export const getTeachers = async (req, res) => {
 	try {
-		const items = await Teacher.find();
-		return res.status(200).json({ success: true, data: items });
+		const currentTeacherId = req.user?.teacherId ? String(req.user.teacherId) : null;
+		const items = await Teacher.find().lean();
+		const data = items.map((teacher) => ({
+			...teacher,
+			isCurrentUser: currentTeacherId === String(teacher._id),
+		}));
+		return res.status(200).json({ success: true, data });
 	} catch (error) {
 		console.log('Error fetching teachers:', error);
 		return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -277,6 +282,54 @@ export const updateTeacher = async (req, res) => {
 		return res.status(200).json({ success: true, data: updated });
 	} catch (error) {
 		console.log('Error updating teacher:', error);
+		return res.status(400).json({ success: false, message: error.message || 'Yêu cầu không hợp lệ' });
+	}
+};
+
+export const updateMyTeacherProfile = async (req, res) => {
+	try {
+		if (!req.user?.teacherId) {
+			return res.status(403).json({ success: false, message: 'Tài khoản này không liên kết với hồ sơ giáo viên' });
+		}
+
+		const {
+			hotenGV,
+			gioitinh,
+			ngaysinh,
+			diachi,
+			email,
+			sdt,
+			ngayvaolam,
+			trinhdohocvan,
+			kinhnghiem,
+			status,
+		} = req.body || {};
+
+		const update = {
+			...(hotenGV !== undefined ? { hotenGV } : {}),
+			...(gioitinh !== undefined ? { gioitinh } : {}),
+			...(ngaysinh ? { ngaysinh: new Date(ngaysinh) } : {}),
+			...(diachi !== undefined ? { diachi } : {}),
+			...(email !== undefined ? { email } : {}),
+			...(sdt !== undefined ? { sdt } : {}),
+			...(ngayvaolam ? { ngayvaolam: new Date(ngayvaolam) } : {}),
+			...(trinhdohocvan !== undefined ? { trinhdohocvan } : {}),
+			...(kinhnghiem !== undefined ? { kinhnghiem } : {}),
+			...(status !== undefined ? { status } : {}),
+		};
+
+		const updated = await Teacher.findByIdAndUpdate(req.user.teacherId, update, {
+			new: true,
+			runValidators: true,
+		});
+
+		if (!updated) {
+			return res.status(404).json({ success: false, message: 'Teacher not found' });
+		}
+
+		return res.status(200).json({ success: true, data: updated });
+	} catch (error) {
+		console.log('Error updating own teacher profile:', error);
 		return res.status(400).json({ success: false, message: error.message || 'Yêu cầu không hợp lệ' });
 	}
 };

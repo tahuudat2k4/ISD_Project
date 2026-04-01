@@ -1,5 +1,5 @@
 import * as React from "react"
-import { LoaderCircle, Plus } from "lucide-react"
+import { LoaderCircle, Pencil } from "lucide-react"
 
 import {
   Dialog,
@@ -33,21 +33,34 @@ const initialFormState = {
   notes: "",
 }
 
-export function ClassCreateDialog({
+export function ClassEditDialog({
   open,
   onOpenChange,
   onSubmit,
   gradeLabel,
   teachers = [],
+  classItem,
   submitting = false,
 }) {
   const [form, setForm] = React.useState(initialFormState)
 
   React.useEffect(() => {
-    if (!open) {
+    if (!open || !classItem) {
       setForm(initialFormState)
+      return
     }
-  }, [open])
+
+    setForm({
+      malop: classItem.code || "",
+      tenlop: classItem.name || "",
+      giaoVienId: classItem.mainTeacherId || "",
+      status: classItem.status || "Hoạt động",
+      capacity: classItem.capacity || 30,
+      assistantTeacher: classItem.assistantTeacher === "Chưa cập nhật" ? "" : classItem.assistantTeacher || "",
+      facilities: Array.isArray(classItem.facilities) ? classItem.facilities.join(", ") : "",
+      notes: classItem.notes === "Chưa có ghi chú" ? "" : classItem.notes || "",
+    })
+  }, [classItem, open])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -71,27 +84,25 @@ export function ClassCreateDialog({
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="size-5 text-emerald-600" />
-            Thêm lớp mới
+            <Pencil className="size-5 text-amber-600" />
+            Cập nhật lớp học
           </DialogTitle>
           <DialogDescription>
-            Tạo lớp thật trong hệ thống cho khối {gradeLabel || "đã chọn"}.
+            Chỉnh sửa thông tin lớp {classItem?.name || "đã chọn"}.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid gap-2">
-            <Label htmlFor="gradeName">Khối lớp</Label>
-            <Input id="gradeName" value={gradeLabel || "Chưa xác định"} disabled />
+            <Label htmlFor="editGradeName">Khối lớp</Label>
+            <Input id="editGradeName" value={gradeLabel || classItem?.gradeName || "Chưa xác định"} disabled />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="malop">
-                Mã lớp <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="editMalop">Mã lớp</Label>
               <Input
-                id="malop"
+                id="editMalop"
                 value={form.malop}
                 onChange={(event) => setForm((prev) => ({ ...prev, malop: event.target.value }))}
                 placeholder="Ví dụ: MAM01"
@@ -100,11 +111,9 @@ export function ClassCreateDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="tenlop">
-                Tên lớp <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="editTenlop">Tên lớp</Label>
               <Input
-                id="tenlop"
+                id="editTenlop"
                 value={form.tenlop}
                 onChange={(event) => setForm((prev) => ({ ...prev, tenlop: event.target.value }))}
                 placeholder="Ví dụ: Mầm 1A"
@@ -113,15 +122,13 @@ export function ClassCreateDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="giaoVienId">
-                Giáo viên chủ nhiệm <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="editGiaoVienId">Giáo viên chủ nhiệm</Label>
               <Select
                 value={form.giaoVienId}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, giaoVienId: value }))}
                 disabled={submitting}
               >
-                <SelectTrigger id="giaoVienId">
+                <SelectTrigger id="editGiaoVienId">
                   <SelectValue placeholder="Chọn giáo viên" />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,13 +142,37 @@ export function ClassCreateDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="status">Trạng thái</Label>
+              <Label htmlFor="editAssistantTeacher">Giáo viên phụ trợ</Label>
+              <Input
+                id="editAssistantTeacher"
+                value={form.assistantTeacher}
+                onChange={(event) => setForm((prev) => ({ ...prev, assistantTeacher: event.target.value }))}
+                placeholder="Nhập tên giáo viên phụ trợ"
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="editCapacity">Sức chứa</Label>
+              <Input
+                id="editCapacity"
+                type="number"
+                min="1"
+                value={form.capacity}
+                onChange={(event) => setForm((prev) => ({ ...prev, capacity: event.target.value }))}
+                placeholder="30"
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="editStatus">Trạng thái</Label>
               <Select
                 value={form.status}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}
                 disabled={submitting}
               >
-                <SelectTrigger id="status">
+                <SelectTrigger id="editStatus">
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
@@ -153,36 +184,12 @@ export function ClassCreateDialog({
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="capacity">Sức chứa</Label>
-              <Input
-                id="capacity"
-                type="number"
-                min="1"
-                value={form.capacity}
-                onChange={(event) => setForm((prev) => ({ ...prev, capacity: event.target.value }))}
-                placeholder="30"
-                disabled={submitting}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="assistantTeacher">Giáo viên phụ trợ</Label>
-              <Input
-                id="assistantTeacher"
-                value={form.assistantTeacher}
-                onChange={(event) => setForm((prev) => ({ ...prev, assistantTeacher: event.target.value }))}
-                placeholder="Nhập tên giáo viên phụ trợ"
-                disabled={submitting}
-              />
-            </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="facilities">Cơ sở vật chất</Label>
+            <Label htmlFor="editFacilities">Cơ sở vật chất</Label>
             <Textarea
-              id="facilities"
+              id="editFacilities"
               value={form.facilities}
               onChange={(event) => setForm((prev) => ({ ...prev, facilities: event.target.value }))}
               placeholder="Nhập các mục, cách nhau bằng dấu phẩy"
@@ -191,9 +198,9 @@ export function ClassCreateDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="notes">Ghi chú</Label>
+            <Label htmlFor="editNotes">Ghi chú</Label>
             <Textarea
-              id="notes"
+              id="editNotes"
               value={form.notes}
               onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
               placeholder="Nhập ghi chú lớp học"
@@ -209,10 +216,10 @@ export function ClassCreateDialog({
               {submitting ? (
                 <>
                   <LoaderCircle className="size-4 animate-spin" />
-                  Đang tạo...
+                  Đang cập nhật...
                 </>
               ) : (
-                "Tạo lớp"
+                "Lưu thay đổi"
               )}
             </Button>
           </DialogFooter>

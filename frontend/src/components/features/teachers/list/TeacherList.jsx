@@ -38,12 +38,20 @@ import { teacherService } from "@/services/teacherService"
 import { authService } from "@/services/authService"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
+
+const compareTeacherCodes = (firstCode = "", secondCode = "") => {
+  return String(firstCode).localeCompare(String(secondCode), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  })
+}
 
 export function TeacherList() {
   const [rows, setRows] = React.useState([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState("")
-  const [sorting, setSorting] = React.useState([])
+  const [sorting, setSorting] = React.useState([{ id: "masoGV", desc: false }])
   const [columnFilters, setColumnFilters] = React.useState([])
   const [columnVisibility, setColumnVisibility] = React.useState({})
   const [rowSelection, setRowSelection] = React.useState({})
@@ -73,8 +81,12 @@ export function TeacherList() {
         class: t.class || "",
         status: t.status || "active",
         avatar: "/avatars/placeholder-teacher.jpg",
+        isCurrentUser: Boolean(t.isCurrentUser),
         raw: t,
       }))
+      mapped.sort((firstTeacher, secondTeacher) =>
+        compareTeacherCodes(firstTeacher.masoGV, secondTeacher.masoGV)
+      )
       setRows(mapped)
     } catch (e) {
       setError(e?.message || "Không thể tải danh sách giáo viên")
@@ -90,6 +102,8 @@ export function TeacherList() {
   const columns = React.useMemo(() => [
     {
       accessorKey: "masoGV",
+      sortingFn: (rowA, rowB, columnId) =>
+        compareTeacherCodes(rowA.getValue(columnId), rowB.getValue(columnId)),
       header: ({ column }) => {
         return (
           <Button
@@ -102,7 +116,16 @@ export function TeacherList() {
           </Button>
         )
       },
-      cell: ({ row }) => <div className="font-mono font-medium text-center pr-5">{row.getValue("masoGV")}</div>,
+      cell: ({ row }) => (
+        <div
+          className={cn(
+            "font-mono font-medium text-center pr-5",
+            row.original.isCurrentUser && "text-sky-500"
+          )}
+        >
+          {row.getValue("masoGV")}
+        </div>
+      ),
     },
     {
       accessorKey: "name",
@@ -126,8 +149,17 @@ export function TeacherList() {
               <AvatarFallback>{teacher.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
             <div>
-              <div className="font-medium">{teacher.name}</div>
-              <div className="text-sm text-muted-foreground">{teacher.email}</div>
+              <div className={cn("font-medium", teacher.isCurrentUser && "text-sky-500")}>
+                {teacher.name}
+              </div>
+              <div
+                className={cn(
+                  "text-sm text-muted-foreground",
+                  teacher.isCurrentUser && "text-sky-500"
+                )}
+              >
+                {teacher.email}
+              </div>
             </div>
           </div>
         )
@@ -136,19 +168,39 @@ export function TeacherList() {
     {
       accessorKey: "phone",
       header: () => <div className="text-center">Số Điện Thoại</div>,
-      cell: ({ row }) => <div className="text-center">{row.getValue("phone")}</div>,
+      cell: ({ row }) => (
+        <div className={cn("text-center", row.original.isCurrentUser && "text-sky-500")}>
+          {row.getValue("phone")}
+        </div>
+      ),
     },
     {
       accessorKey: "subject",
       header: () => <div className="text-center">Môn Giảng Dạy</div>,
-      cell: ({ row }) => <div className="font-medium text-center">{row.getValue("subject")}</div>,
+      cell: ({ row }) => (
+        <div
+          className={cn(
+            "font-medium text-center",
+            row.original.isCurrentUser && "text-sky-500"
+          )}
+        >
+          {row.getValue("subject")}
+        </div>
+      ),
     },
     {
       accessorKey: "class",
       header: () => <div className="text-center">Lớp Chủ Nhiệm</div>,
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <Badge variant="outline">{row.getValue("class")}</Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              row.original.isCurrentUser && "border-sky-300 bg-sky-50 text-sky-600"
+            )}
+          >
+            {row.getValue("class")}
+          </Badge>
         </div>
       ),
     },
@@ -183,12 +235,14 @@ export function TeacherList() {
       enableHiding: false,
       cell: ({ row }) => {
         const teacher = row.original
+        const canEditOwnProfile = teacher.isCurrentUser
+        const canEditTeacher = isAdmin || canEditOwnProfile
         const [detailOpen, setDetailOpen] = React.useState(false)
         const [editOpen, setEditOpen] = React.useState(false)
 
         const handleSave = async (updatedTeacher) => {
           try {
-            const payload = {
+            const adminPayload = {
               masoGV: updatedTeacher.masoGV,
               hotenGV: updatedTeacher.name,
               gioitinh: updatedTeacher.gioitinh,
@@ -203,10 +257,24 @@ export function TeacherList() {
               class: updatedTeacher.class || "",
               status: updatedTeacher.status || "active"
             }
-            const res = await teacherService.updateTeacher(teacher.id, payload)
+            const ownProfilePayload = {
+              hotenGV: updatedTeacher.name,
+              gioitinh: updatedTeacher.gioitinh,
+              ngaysinh: updatedTeacher.dateOfBirth || null,
+              diachi: updatedTeacher.address || "",
+              email: updatedTeacher.email,
+              sdt: updatedTeacher.phone,
+              ngayvaolam: updatedTeacher.joinDate || null,
+              trinhdohocvan: updatedTeacher.degree || "",
+              kinhnghiem: updatedTeacher.experience || "",
+              status: updatedTeacher.status || "active",
+            }
+            const res = isAdmin
+              ? await teacherService.updateTeacher(teacher.id, adminPayload)
+              : await teacherService.updateMyProfile(ownProfilePayload)
             if (res?.success) {
-              // Đợi backend cập nhật xong rồi reload danh sách
               await loadTeachers()
+              toast.success(canEditOwnProfile && !isAdmin ? "Đã cập nhật thông tin cá nhân" : "Đã cập nhật giáo viên thành công")
             } else {
               throw new Error(res?.message || "Cập nhật giáo viên thất bại")
             }
@@ -257,12 +325,12 @@ export function TeacherList() {
                 <DropdownMenuItem onClick={() => setDetailOpen(true)}>
                   Xem chi tiết
                 </DropdownMenuItem>
-                {isAdmin ? (
+                {canEditTeacher ? (
                   <>
                     <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                      Chỉnh sửa
+                      {isAdmin ? "Chỉnh sửa" : "Chỉnh sửa thông tin cá nhân"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600" onClick={handleDelete}>Xóa</DropdownMenuItem>
+                    {isAdmin ? <DropdownMenuItem className="text-red-600" onClick={handleDelete}>Xóa</DropdownMenuItem> : null}
                   </>
                 ) : null}
               </DropdownMenuContent>
@@ -272,12 +340,13 @@ export function TeacherList() {
               open={detailOpen} 
               onOpenChange={setDetailOpen}
             />
-            {isAdmin ? (
+            {canEditTeacher ? (
               <EditTeacherForm
                 teacher={teacher}
                 open={editOpen}
                 onOpenChange={setEditOpen}
                 onSave={handleSave}
+                isOwnProfile={canEditOwnProfile && !isAdmin}
               />
             ) : null}
             {/* Popup xác nhận xóa giáo viên */}
@@ -400,6 +469,9 @@ export function TeacherList() {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={cn(
+                    row.original.isCurrentUser && "bg-sky-50/80 hover:bg-sky-100/80"
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

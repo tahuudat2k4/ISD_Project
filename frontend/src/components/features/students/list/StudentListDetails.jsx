@@ -10,6 +10,18 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Calendar, MapPin, Phone, Heart, GraduationCap, FileText, Camera } from "lucide-react"
 
+function getStatusBadgeVariant(status) {
+  if (status === "Đang học") {
+    return "default"
+  }
+
+  if (status === "Nghỉ phép") {
+    return "secondary"
+  }
+
+  return "destructive"
+}
+
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3">
@@ -62,7 +74,7 @@ export function StudentListDetails({ open, onOpenChange, student }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>Thông tin học sinh</DialogTitle>
         </DialogHeader>
@@ -93,6 +105,7 @@ export function StudentListDetails({ open, onOpenChange, student }) {
               <div className="flex items-center justify-center gap-2 mt-2">
                 <Badge variant="secondary">{student.code}</Badge>
                 <Badge variant="outline">{student.gender}</Badge>
+                <Badge variant={getStatusBadgeVariant(student.status)}>{student.status || "Đang học"}</Badge>
               </div>
             </div>
           </div>
@@ -111,6 +124,7 @@ export function StudentListDetails({ open, onOpenChange, student }) {
             {/* Column 2 */}
             <div className="space-y-4">
               <InfoRow icon={Phone} label="Số điện thoại" value={student.phone} />
+              <InfoRow icon={User} label="Trạng thái" value={student.status} />
               <InfoRow icon={Heart} label="Tình trạng sức khỏe" value={student.health} />
               <InfoRow icon={GraduationCap} label="Lớp học" value={student.className} />
             </div>

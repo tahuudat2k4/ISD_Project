@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { GermClassFilters } from "./GermClassFilters"
 import { GermClassStats } from "./GermClassStats"
 import { GermClassTable } from "./GermClassTable"
 import { GermClassDetails } from "./GermClassDetails"
 import { ClassCreateDialog } from "../ClassCreateDialog"
+import { ClassEditDialog } from "../ClassEditDialog"
+import { ClassDeleteDialog } from "../ClassDeleteDialog"
 import { toast } from "sonner"
 import { authService } from "@/services/authService"
 import { classService } from "@/services/classService"
@@ -21,9 +22,15 @@ export function GermClassFeature() {
   const [grades, setGrades] = useState([])
   const [createOpen, setCreateOpen] = useState(false)
   const [createSubmitting, setCreateSubmitting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedClass, setSelectedClass] = useState(null)
+  const [editingClass, setEditingClass] = useState(null)
+  const [deletingClass, setDeletingClass] = useState(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const isAdmin = authService.isAdmin()
   const targetGrade = useMemo(() => findGradeByKeyword(grades, "mầm"), [grades])
@@ -97,8 +104,8 @@ export function GermClassFeature() {
       return
     }
 
-    toast.info("Chức năng chỉnh sửa sắp ra mắt")
-    console.log("Edit class:", germClass)
+    setEditingClass(germClass)
+    setEditOpen(true)
   }
 
   const handleDelete = (germClass) => {
@@ -106,19 +113,8 @@ export function GermClassFeature() {
       return
     }
 
-    if (!confirm(`Bạn có chắc muốn xóa lớp ${germClass.name}?`)) {
-      return
-    }
-
-    classService.deleteClass(germClass.id)
-      .then((response) => {
-        toast.success(response?.message || "Đã xóa lớp học thành công!")
-        loadClasses()
-      })
-      .catch((error) => {
-        const message = error?.response?.data?.message || error?.message || "Xóa lớp học thất bại"
-        toast.error(message)
-      })
+    setDeletingClass(germClass)
+    setDeleteOpen(true)
   }
 
   const handleViewDetails = (germClass) => {
@@ -149,6 +145,54 @@ export function GermClassFeature() {
     }
   }
 
+  const handleUpdateClass = async (payload) => {
+    if (!editingClass) {
+      return
+    }
+
+    if (!payload.malop || !payload.tenlop || !payload.giaoVienId) {
+      toast.error("Vui lòng nhập đầy đủ mã lớp, tên lớp và giáo viên chủ nhiệm")
+      return
+    }
+
+    try {
+      setEditSubmitting(true)
+      const response = await classService.updateClass(editingClass.id, {
+        ...payload,
+        khoiId: targetGrade?._id || editingClass.gradeId,
+      })
+      toast.success(response?.message || "Cập nhật lớp học thành công")
+      setEditOpen(false)
+      setEditingClass(null)
+      await loadClasses()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Không thể cập nhật lớp học"
+      toast.error(message)
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingClass) {
+      return
+    }
+
+    try {
+      setDeleteSubmitting(true)
+      const response = await classService.deleteClass(deletingClass.id)
+      toast.success(response?.message || "Đã xóa lớp học thành công!")
+      setDeleteOpen(false)
+      setDeletingClass(null)
+      await loadClasses()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "Xóa lớp học thất bại"
+      toast.error(message)
+    } finally {
+      setDeleteSubmitting(false)
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       {/* Header */}
@@ -164,14 +208,6 @@ export function GermClassFeature() {
         ) : null}
       </div>
 
-      {/* Filters */}
-      <GermClassFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
-      />
-
       {/* Stats */}
       <GermClassStats stats={stats} />
 
@@ -182,6 +218,10 @@ export function GermClassFeature() {
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
         canManageClasses={isAdmin}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
       />
 
       {/* Details Modal */}
@@ -198,6 +238,24 @@ export function GermClassFeature() {
         gradeLabel={targetGrade?.tenkhoi || "Mầm"}
         teachers={teachers}
         submitting={createSubmitting}
+      />
+
+      <ClassEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSubmit={handleUpdateClass}
+        gradeLabel={targetGrade?.tenkhoi || "Mầm"}
+        teachers={teachers}
+        classItem={editingClass}
+        submitting={editSubmitting}
+      />
+
+      <ClassDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        classItem={deletingClass}
+        onConfirm={handleConfirmDelete}
+        submitting={deleteSubmitting}
       />
     </div>
   )
