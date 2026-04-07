@@ -11,7 +11,15 @@ const validatePassword = (password) => {
 		return 'Mật khẩu phải có ít nhất 6 ký tự';
 	}
 
+	if (password.length > 50) {
+		return 'Mật khẩu không được vượt quá 50 ký tự';
+	}
+
 	return null;
+};
+
+const canDeleteTeacherAccount = (status) => {
+	return status === 'inactive' || status === 'Không hoạt động';
 };
 
 export const getTeachers = async (req, res) => {
@@ -104,7 +112,7 @@ export const getTeacherById = async (req, res) => {
 
 export const createTeacher = async (req, res) => {
 	try {
-		const { masoGV, hotenGV, gioitinh, ngaysinh, diachi, email, sdt, ngayvaolam, trinhdohocvan, kinhnghiem, subject, class: className } = req.body || {};
+		const { masoGV, hotenGV, gioitinh, ngaysinh, diachi, email, sdt, ngayvaolam, trinhdohocvan, kinhnghiem, subject, class: className, status } = req.body || {};
 
 		if (!masoGV || !hotenGV) {
 			return res.status(400).json({ success: false, message: 'Mã số giáo viên và Họ tên là bắt buộc' });
@@ -128,6 +136,7 @@ export const createTeacher = async (req, res) => {
 			kinhnghiem,
 			subject,
 			class: className,
+			status,
 		};
 
 		const created = await Teacher.create(payload);
@@ -248,9 +257,16 @@ export const resetTeacherAccountPassword = async (req, res) => {
 
 export const deleteTeacherAccount = async (req, res) => {
 	try {
-		const teacher = await Teacher.findById(req.params.id).select('_id hotenGV masoGV').lean();
+		const teacher = await Teacher.findById(req.params.id).select('_id hotenGV masoGV status').lean();
 		if (!teacher) {
 			return res.status(404).json({ success: false, message: 'Teacher not found' });
+		}
+
+		if (!canDeleteTeacherAccount(teacher.status)) {
+			return res.status(400).json({
+				success: false,
+				message: 'Vui lòng chuyển trạng thái giáo viên sang Không hoạt động trước khi xóa tài khoản',
+			});
 		}
 
 		const deletedAccount = await User.findOneAndDelete({ teacherId: teacher._id });

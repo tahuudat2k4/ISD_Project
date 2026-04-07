@@ -36,6 +36,15 @@ const initialPasswordVisibility = {
   confirmPassword: false,
 }
 
+const canDeleteTeacherAccount = (status) => status === "inactive" || status === "Không hoạt động"
+
+const getTeacherStatusLabel = (status) => {
+  if (status === "active" || status === "Đang làm việc") return "Đang làm việc"
+  if (status === "leave" || status === "Nghỉ phép") return "Nghỉ phép"
+  if (status === "inactive" || status === "Không hoạt động") return "Không hoạt động"
+  return status || "Chưa rõ"
+}
+
 
 export function TeacherAccountsManager() {
   const [teachers, setTeachers] = React.useState([])
@@ -142,6 +151,10 @@ export function TeacherAccountsManager() {
       toast.error("Mật khẩu phải có ít nhất 6 ký tự")
       return
     }
+    if (password.length > 50) {
+      toast.error("Mật khẩu không được vượt quá 50 ký tự")
+      return
+    }
     if (!/[A-Za-z]/.test(password)) {
       toast.error("Mật khẩu phải chứa ít nhất 1 chữ cái")
       return
@@ -196,26 +209,13 @@ export function TeacherAccountsManager() {
   }
 
   const handleDeleteAccount = async (teacher) => {
-    // Chỉ cho phép xóa nếu trạng thái là inactive/Không hoạt động
-    if (
-      teacher.status === "active" ||
-      teacher.status === "Đang làm việc"
-    ) {
-      setTeacherToDelete(teacher)
-      setDeleteDialogOpen(true)
-      return
-    }
     setTeacherToDelete(teacher)
     setDeleteDialogOpen(true)
   }
 
   const confirmDeleteAccount = async () => {
     if (!teacherToDelete) return
-    // Nếu trạng thái vẫn là active thì không cho xóa
-    if (
-      teacherToDelete.status === "active" ||
-      teacherToDelete.status === "Đang làm việc"
-    ) {
+    if (!canDeleteTeacherAccount(teacherToDelete.status)) {
       setDeleteDialogOpen(false)
       toast.error("Vui lòng chuyển trạng thái giáo viên sang 'Không hoạt động' trong danh sách giáo viên trước khi xóa tài khoản!")
       return
@@ -355,9 +355,9 @@ export function TeacherAccountsManager() {
                                       <DialogHeader>
                                         <DialogTitle>Xác nhận xóa tài khoản</DialogTitle>
                                       </DialogHeader>
-                                      {teacherToDelete && (teacherToDelete.status === "active" || teacherToDelete.status === "Đang làm việc") ? (
+                                      {teacherToDelete && !canDeleteTeacherAccount(teacherToDelete.status) ? (
                                         <div className="text-red-600 font-medium py-2">
-                                          Tài khoản giáo viên <b>{teacherToDelete.hotenGV}</b> ({teacherToDelete.masoGV}) hiện đang ở trạng thái <b>Đang làm việc</b>.<br/>
+                                          Tài khoản giáo viên <b>{teacherToDelete.hotenGV}</b> ({teacherToDelete.masoGV}) hiện đang ở trạng thái <b>{getTeacherStatusLabel(teacherToDelete.status)}</b>.<br/>
                                           Vui lòng chuyển trạng thái giáo viên sang <b>Không hoạt động</b> trong danh sách giáo viên trước khi xóa tài khoản!
                                         </div>
                                       ) : (
@@ -370,7 +370,7 @@ export function TeacherAccountsManager() {
                                         <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={submitting}>
                                           Hủy
                                         </Button>
-                                        {teacherToDelete && !(teacherToDelete.status === "active" || teacherToDelete.status === "Đang làm việc") && (
+                                        {teacherToDelete && canDeleteTeacherAccount(teacherToDelete.status) && (
                                           <Button variant="destructive" onClick={confirmDeleteAccount} disabled={submitting}>
                                             Xóa tài khoản
                                           </Button>
@@ -456,6 +456,7 @@ export function TeacherAccountsManager() {
                   value={form.password}
                   onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
                   placeholder="Tối thiểu 6 ký tự"
+                  maxLength={50}
                   autoComplete="new-password"
                   disabled={submitting}
                   className="pr-10"
@@ -479,6 +480,7 @@ export function TeacherAccountsManager() {
                   value={form.confirmPassword}
                   onChange={(event) => setForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
                   placeholder="Nhập lại mật khẩu"
+                  maxLength={50}
                   autoComplete="new-password"
                   disabled={submitting}
                   className="pr-10"

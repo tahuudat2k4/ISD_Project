@@ -406,6 +406,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
                       value={formData.degree}
                       onChange={handleChange}
                       placeholder="Cử nhân Sư phạm Mầm non"
+                      maxLength={50}
                       required
                     />
                   </div>

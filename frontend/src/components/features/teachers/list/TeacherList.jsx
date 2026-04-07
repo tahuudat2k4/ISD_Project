@@ -47,6 +47,13 @@ const compareTeacherCodes = (firstCode = "", secondCode = "") => {
   })
 }
 
+const normalizeTeacherStatus = (status) => {
+  if (status === "Đang làm việc") return "active"
+  if (status === "Nghỉ phép") return "leave"
+  if (status === "Không hoạt động") return "inactive"
+  return status || "active"
+}
+
 export function TeacherList() {
   const [rows, setRows] = React.useState([])
   const [loading, setLoading] = React.useState(false)
@@ -79,7 +86,7 @@ export function TeacherList() {
         experience: t.kinhnghiem || "",
         subject: t.subject || "",
         class: t.class || "",
-        status: t.status || "active",
+        status: normalizeTeacherStatus(t.status),
         avatar: "/avatars/placeholder-teacher.jpg",
         isCurrentUser: Boolean(t.isCurrentUser),
         raw: t,
@@ -370,8 +377,8 @@ export function TeacherList() {
 
   const handleAddTeacher = async (form) => {
     if (!isAdmin) {
-      alert("Chỉ quản trị viên mới có thể thêm giáo viên")
-      return
+      toast.error("Chỉ quản trị viên mới có thể thêm giáo viên")
+      return false
     }
 
     try {
@@ -389,17 +396,25 @@ export function TeacherList() {
         kinhnghiem: form.experience || "",
         subject: form.subject || "",
         class: form.class || "",
+        status: form.status || "active",
       }
       const res = await teacherService.createTeacher(payload)
       if (res?.success) {
         await loadTeachers()
+        toast.success("Đã thêm giáo viên thành công")
+        return true
       } else {
         throw new Error(res?.message || "Thêm giáo viên thất bại")
       }
     } catch (e) {
       console.error("Add teacher failed:", e)
       const msg = e?.response?.data?.message || e?.message || "Thêm giáo viên thất bại"
-      alert(msg)
+      if (msg.includes("Mã số giáo viên đã tồn tại")) {
+        toast.error("Mã giáo viên đã tồn tại")
+      } else {
+        toast.error(msg)
+      }
+      return false
     }
   }
 

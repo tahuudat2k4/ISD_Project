@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -18,9 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { Save, X } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
 
 const SUBJECT_OPTIONS = [
   "Toán",
@@ -46,6 +43,48 @@ const CLASS_OPTIONS = [
   "Lá 3B",
 ]
 
+const normalizeDateInput = (value) => {
+  const digits = value.replace(/\D/g, "").slice(0, 8)
+
+  if (digits.length <= 2) return digits
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+}
+
+const parseDateString = (value) => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value)
+  if (!match) return null
+
+  const [, dayText, monthText, yearText] = match
+  const day = Number(dayText)
+  const month = Number(monthText)
+  const year = Number(yearText)
+  const date = new Date(year, month - 1, day)
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+const formatDateForApi = (value) => {
+  const parsedDate = parseDateString(value)
+  if (!parsedDate) return null
+
+  const day = String(parsedDate.getDate()).padStart(2, "0")
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0")
+  const year = parsedDate.getFullYear()
+
+  return `${year}-${month}-${day}`
+}
+
 export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
   const [formData, setFormData] = React.useState({
     masoGV: "",
@@ -67,9 +106,13 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+    const nextValue = name === "dateOfBirth" || name === "joinDate"
+      ? normalizeDateInput(value)
+      : value
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: nextValue,
     }))
     if (errors[name]) {
       setErrors((prev) => ({
@@ -105,6 +148,8 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
       newErrors.name = "Tên không được có khoảng trắng ở đầu hoặc cuối"
     } else if (/\s{2,}/.test(name)) {
       newErrors.name = "Tên không được có nhiều hơn 1 khoảng trắng giữa các từ"
+    } else if (name.trim().split(/\s+/).length < 2) {
+      newErrors.name = "Họ và tên chưa hợp lệ"
     }
 
     if (!formData.email.trim()) newErrors.email = "Email là bắt buộc"
@@ -112,10 +157,10 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
       newErrors.email = "Email không hợp lệ"
     if (!formData.phone.trim()) {
       newErrors.phone = "Số điện thoại là bắt buộc"
-    } else if (!/^0[35789][0-9]{8}$/.test(formData.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ"
     } else if (/\s/.test(formData.phone)) {
       newErrors.phone = "Số điện thoại không được chứa khoảng trắng"
+    } else if (!/^0\d{9}$/.test(formData.phone)) {
+      newErrors.phone = "Số điện thoại không hợp lệ"
     }
     const address = formData.address
     if (!address.trim()) {
@@ -145,16 +190,18 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     if (formData.dateOfBirth) {
-      const dob = new Date(formData.dateOfBirth)
-      dob.setHours(0, 0, 0, 0)
-      if (dob > today) {
-        newErrors.dateOfBirth = "Ngày sinh không không hợp lệ"
+      const dob = parseDateString(formData.dateOfBirth)
+      if (!dob) {
+        newErrors.dateOfBirth = "Ngày sinh phải có định dạng dd/mm/yyyy"
+      } else if (dob > today) {
+        newErrors.dateOfBirth = "Ngày sinh không hợp lệ"
       }
     }
     if (formData.joinDate) {
-      const join = new Date(formData.joinDate)
-      join.setHours(0, 0, 0, 0)
-      if (join > today) {
+      const join = parseDateString(formData.joinDate)
+      if (!join) {
+        newErrors.joinDate = "Ngày vào làm phải có định dạng dd/mm/yyyy"
+      } else if (join > today) {
         newErrors.joinDate = "Ngày vào làm không hợp lệ"
       }
     }
@@ -163,10 +210,19 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (validateForm()) {
-      onSave(formData)
+      const payload = {
+        ...formData,
+        dateOfBirth: formData.dateOfBirth ? formatDateForApi(formData.dateOfBirth) : null,
+        joinDate: formData.joinDate ? formatDateForApi(formData.joinDate) : null,
+      }
+
+      const saved = await onSave(payload)
+      if (saved === false) {
+        return
+      }
       resetForm()
       onOpenChange(false)
     }
@@ -265,15 +321,15 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
                     <Label htmlFor="dateOfBirth" className="text-xs font-semibold">
                       Ngày sinh
                     </Label>
-                    <DatePicker
+                    <Input
+                      id="dateOfBirth"
+                      name="dateOfBirth"
                       value={formData.dateOfBirth}
-                      onChange={(date) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          dateOfBirth: date,
-                        }))
-                      }
-                      placeholder="DD/MM/YYYY"
+                      onChange={handleChange}
+                      placeholder="dd/mm/yyyy"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className={`h-8 text-xs ${errors.dateOfBirth ? "border-red-500" : ""}`}
                     />
                     {errors.dateOfBirth && (
                       <p className="text-xs text-red-500">{errors.dateOfBirth}</p>
@@ -358,15 +414,15 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
                 <div className="grid grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold">Ngày vào làm</Label>
-                    <DatePicker
+                    <Input
+                      id="joinDate"
+                      name="joinDate"
                       value={formData.joinDate}
-                      onChange={(date) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          joinDate: date,
-                        }))
-                      }
-                      placeholder="DD/MM/YYYY"
+                      onChange={handleChange}
+                      placeholder="dd/mm/yyyy"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className={`h-8 text-xs ${errors.joinDate ? "border-red-500" : ""}`}
                     />
                     {errors.joinDate && (
                       <p className="text-xs text-red-500">{errors.joinDate}</p>
@@ -382,6 +438,7 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
                       value={formData.degree}
                       onChange={handleChange}
                       placeholder="Cử nhân..."
+                      maxLength={50}
                       className="h-8 text-xs"
                     />
                   </div>
