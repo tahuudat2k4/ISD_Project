@@ -8,11 +8,80 @@ const DEFAULT_GRADES = {
 	LA: 'Lá',
 };
 
+const GRADE_ALIASES = {
+	GERM: 'MAM',
+	BUD: 'CHOI',
+	LEAF: 'LA',
+};
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildExactCaseInsensitiveRegex = (value) => new RegExp(`^${escapeRegExp(String(value).trim())}$`, 'i');
+
+const normalizeGradeCode = (value) => {
+	const normalizedValue = String(value || '').trim().toUpperCase();
+	return GRADE_ALIASES[normalizedValue] || normalizedValue;
+};
+
+const normalizeText = (value) => String(value || '')
+	.normalize('NFD')
+	.replace(/[\u0300-\u036f]/g, '')
+	.toLowerCase()
+	.trim();
+
+const isValidClassCodeForGrade = (classCode, gradeCode) => {
+	if (!classCode || !gradeCode) {
+		return false;
+	}
+
+	return new RegExp(`^${escapeRegExp(gradeCode)}\\d+$`, 'i').test(String(classCode).trim());
+};
+
+const isValidClassNameForGrade = (className, gradeName) => {
+	if (!className || !gradeName) {
+		return false;
+	}
+
+	return normalizeText(className).startsWith(normalizeText(gradeName));
+};
+
+const resolveGradeCode = async ({ khoiId, makhoi, resolvedGradeId }) => {
+	if (makhoi) {
+		return normalizeGradeCode(makhoi);
+	}
+
+	const gradeId = resolvedGradeId || khoiId;
+
+	if (!gradeId) {
+		return '';
+	}
+
+	const grade = await Grade.findById(gradeId).select('makhoi');
+	return normalizeGradeCode(grade?.makhoi);
+};
+
+const resolveGradeName = async ({ khoiId, makhoi, resolvedGradeId }) => {
+	const gradeCode = normalizeGradeCode(makhoi);
+
+	if (DEFAULT_GRADES[gradeCode]) {
+		return DEFAULT_GRADES[gradeCode];
+	}
+
+	const gradeId = resolvedGradeId || khoiId;
+
+	if (!gradeId) {
+		return '';
+	}
+
+	const grade = await Grade.findById(gradeId).select('tenkhoi makhoi');
+	return grade?.tenkhoi || DEFAULT_GRADES[normalizeGradeCode(grade?.makhoi)] || '';
+};
+
 const resolveGradeId = async ({ khoiId, makhoi }) => {
 	let resolvedGradeId = khoiId;
 
 	if (!resolvedGradeId && makhoi) {
-		const normalizedCode = String(makhoi).trim().toUpperCase();
+		const normalizedCode = normalizeGradeCode(makhoi);
 		let grade = await Grade.findOne({ makhoi: normalizedCode });
 
 		if (!grade && DEFAULT_GRADES[normalizedCode]) {
@@ -76,7 +145,26 @@ export const createClass = async (req, res) => {
 			});
 		}
 
-		const existing = await Class.findOne({ malop: malop.trim() });
+		const normalizedMalop = malop.trim().toUpperCase();
+		const normalizedTenlop = tenlop.trim();
+		const resolvedGradeCode = await resolveGradeCode({ khoiId, makhoi, resolvedGradeId });
+		const resolvedGradeName = await resolveGradeName({ khoiId, makhoi, resolvedGradeId });
+
+		if (!isValidClassCodeForGrade(normalizedMalop, resolvedGradeCode)) {
+			return res.status(400).json({
+				success: false,
+				message: `Mã lớp phải bắt đầu bằng ${resolvedGradeCode} và theo sau là số`,
+			});
+		}
+
+		if (!isValidClassNameForGrade(normalizedTenlop, resolvedGradeName)) {
+			return res.status(400).json({
+				success: false,
+				message: `Tên lớp phải bắt đầu bằng ${resolvedGradeName}`,
+			});
+		}
+
+		const existing = await Class.findOne({ malop: normalizedMalop });
 		if (existing) {
 			return res.status(400).json({
 				success: false,
@@ -84,9 +172,20 @@ export const createClass = async (req, res) => {
 			});
 		}
 
+		const existingName = await Class.findOne({
+			tenlop: { $regex: buildExactCaseInsensitiveRegex(normalizedTenlop) },
+		});
+
+		if (existingName) {
+			return res.status(400).json({
+				success: false,
+				message: 'Tên lớp đã tồn tại',
+			});
+		}
+
 		const created = await Class.create({
-			malop: malop.trim(),
-			tenlop: tenlop.trim(),
+			malop: normalizedMalop,
+			tenlop: normalizedTenlop,
 			status: status || 'Hoạt động',
 			succhua: Number(succhua) > 0 ? Number(succhua) : 30,
 			giaovienphutro: giaovienphutro?.trim() || '',
@@ -100,7 +199,7 @@ export const createClass = async (req, res) => {
 			khoiId: resolvedGradeId,
 			giaoVienId,
 		});
-		await Teacher.findByIdAndUpdate(giaoVienId, { class: tenlop.trim() });
+		await Teacher.findByIdAndUpdate(giaoVienId, { class: normalizedTenlop });
 		const item = await Class.findById(created._id).populate('khoiId').populate('giaoVienId');
 		return res.status(201).json({ success: true, message: 'Tạo lớp học thành công', data: item });
 	} catch (error) {
@@ -133,14 +232,30 @@ export const updateClass = async (req, res) => {
 			cosovatchat,
 			ghichu,
 		} = req.body || {};
-		const normalizedMalop = malop?.trim();
+		const normalizedMalop = malop?.trim().toUpperCase();
 		const normalizedTenlop = tenlop?.trim();
 		const resolvedGradeId = await resolveGradeId({ khoiId, makhoi });
+		const resolvedGradeCode = await resolveGradeCode({ khoiId, makhoi, resolvedGradeId });
+		const resolvedGradeName = await resolveGradeName({ khoiId, makhoi, resolvedGradeId });
 
 		if (!normalizedMalop || !normalizedTenlop || !resolvedGradeId || !giaoVienId) {
 			return res.status(400).json({
 				success: false,
 				message: 'Mã lớp, tên lớp, khối lớp và giáo viên chủ nhiệm là bắt buộc',
+			});
+		}
+
+		if (!isValidClassCodeForGrade(normalizedMalop, resolvedGradeCode)) {
+			return res.status(400).json({
+				success: false,
+				message: `Mã lớp phải bắt đầu bằng ${resolvedGradeCode} và theo sau là số`,
+			});
+		}
+
+		if (!isValidClassNameForGrade(normalizedTenlop, resolvedGradeName)) {
+			return res.status(400).json({
+				success: false,
+				message: `Tên lớp phải bắt đầu bằng ${resolvedGradeName}`,
 			});
 		}
 
@@ -151,6 +266,15 @@ export const updateClass = async (req, res) => {
 
 		if (duplicate) {
 			return res.status(400).json({ success: false, message: 'Mã lớp đã tồn tại' });
+		}
+
+		const duplicateName = await Class.findOne({
+			tenlop: { $regex: buildExactCaseInsensitiveRegex(normalizedTenlop) },
+			_id: { $ne: req.params.id },
+		});
+
+		if (duplicateName) {
+			return res.status(400).json({ success: false, message: 'Tên lớp đã tồn tại' });
 		}
 
 		existing.malop = normalizedMalop;

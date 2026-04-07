@@ -263,6 +263,7 @@ export function StudentListFeature() {
           onOpenChange={setIsFormOpen}
           student={selectedStudent}
           onSubmit={handleSubmit}
+          existingStudents={students}
         />
       ) : null}
 

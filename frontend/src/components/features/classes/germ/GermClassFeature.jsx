@@ -236,7 +236,9 @@ export function GermClassFeature() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateClass}
         gradeLabel={targetGrade?.tenkhoi || "Mầm"}
+        gradeCode={gradeCode}
         teachers={teachers}
+        existingClasses={classes}
         submitting={createSubmitting}
       />
 
@@ -245,6 +247,7 @@ export function GermClassFeature() {
         onOpenChange={setEditOpen}
         onSubmit={handleUpdateClass}
         gradeLabel={targetGrade?.tenkhoi || "Mầm"}
+        gradeCode={gradeCode}
         teachers={teachers}
         classItem={editingClass}
         submitting={editSubmitting}

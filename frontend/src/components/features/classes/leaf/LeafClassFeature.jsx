@@ -230,7 +230,9 @@ export function LeafClassFeature() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateClass}
         gradeLabel={targetGrade?.tenkhoi || "Lá"}
+        gradeCode={gradeCode}
         teachers={teachers}
+        existingClasses={classes}
         submitting={createSubmitting}
       />
 
@@ -239,6 +241,7 @@ export function LeafClassFeature() {
         onOpenChange={setEditOpen}
         onSubmit={handleUpdateClass}
         gradeLabel={targetGrade?.tenkhoi || "Lá"}
+        gradeCode={gradeCode}
         teachers={teachers}
         classItem={editingClass}
         submitting={editSubmitting}

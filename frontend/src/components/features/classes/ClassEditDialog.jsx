@@ -22,6 +22,53 @@ import {
 } from "@/components/ui/select"
 import { CLASS_STATUSES } from "./classViewModel"
 
+const normalizeText = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLocaleLowerCase()
+  .trim()
+const ASSISTANT_TEACHER_REGEX = /^[\p{L}]+(?: [\p{L}]+)*$/u
+
+const validateAssistantTeacher = (value) => {
+  if (!value) {
+    return ""
+  }
+
+  if (/^\s|\s$/.test(value)) {
+    return "Giáo viên phụ trợ không được có khoảng trắng ở đầu hoặc cuối"
+  }
+
+  if (/\s{2,}/.test(value)) {
+    return "Giáo viên phụ trợ không được có nhiều hơn 1 khoảng trắng giữa các từ"
+  }
+
+  if (!value.includes(" ")) {
+    return "Phải có khoảng trắng ngăn cách giữa các từ"
+  }
+
+  if (!ASSISTANT_TEACHER_REGEX.test(value)) {
+    return "Giáo viên phụ trợ chỉ được chứa chữ cái và khoảng trắng"
+  }
+
+  return ""
+}
+
+const isValidClassNameForGrade = (value, gradeLabel) => {
+  if (!gradeLabel) {
+    return true
+  }
+
+  return normalizeText(value).startsWith(normalizeText(gradeLabel))
+}
+
+const isValidClassCode = (value, gradeCode) => {
+  if (!gradeCode) {
+    return true
+  }
+
+  return new RegExp(`^${gradeCode}\\d+$`, "i").test(String(value || "").trim())
+}
+
 const initialFormState = {
   malop: "",
   tenlop: "",
@@ -38,15 +85,18 @@ export function ClassEditDialog({
   onOpenChange,
   onSubmit,
   gradeLabel,
+  gradeCode = "",
   teachers = [],
   classItem,
   submitting = false,
 }) {
   const [form, setForm] = React.useState(initialFormState)
+  const [errors, setErrors] = React.useState({})
 
   React.useEffect(() => {
     if (!open || !classItem) {
       setForm(initialFormState)
+      setErrors({})
       return
     }
 
@@ -60,10 +110,51 @@ export function ClassEditDialog({
       facilities: Array.isArray(classItem.facilities) ? classItem.facilities.join(", ") : "",
       notes: classItem.notes === "Chưa có ghi chú" ? "" : classItem.notes || "",
     })
+    setErrors({})
   }, [classItem, open])
+
+  const handleFieldChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+
+    setErrors((prev) => {
+      if (!prev[field]) {
+        return prev
+      }
+
+      const nextErrors = { ...prev }
+      delete nextErrors[field]
+      return nextErrors
+    })
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
+    const nextErrors = {}
+    const normalizedClassCode = form.malop.trim().toUpperCase()
+
+    if (!normalizedClassCode) {
+      nextErrors.malop = "Mã lớp là bắt buộc"
+    } else if (!isValidClassCode(normalizedClassCode, gradeCode)) {
+      nextErrors.malop = `Mã lớp khối ${gradeLabel || "này"} phải bắt đầu bằng ${gradeCode} và theo sau là số`
+    }
+
+    if (!form.tenlop.trim()) {
+      nextErrors.tenlop = "Tên lớp là bắt buộc"
+    } else if (!isValidClassNameForGrade(form.tenlop, gradeLabel)) {
+      nextErrors.tenlop = `Tên lớp khối ${gradeLabel || "này"} phải bắt đầu bằng ${gradeLabel}`
+    }
+
+    const assistantTeacherError = validateAssistantTeacher(form.assistantTeacher)
+    if (assistantTeacherError) {
+      nextErrors.assistantTeacher = assistantTeacherError
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
+      return
+    }
+
     await onSubmit({
       malop: form.malop.trim(),
       tenlop: form.tenlop.trim(),
@@ -104,10 +195,13 @@ export function ClassEditDialog({
               <Input
                 id="editMalop"
                 value={form.malop}
-                onChange={(event) => setForm((prev) => ({ ...prev, malop: event.target.value }))}
-                placeholder="Ví dụ: MAM01"
+                onChange={(event) => handleFieldChange("malop", event.target.value)}
+                placeholder={gradeCode ? `Ví dụ: ${gradeCode}01` : "Ví dụ: MAM01"}
+                aria-invalid={Boolean(errors.malop)}
+                className={errors.malop ? "border-destructive" : undefined}
                 disabled={submitting}
               />
+              {errors.malop ? <p className="text-sm text-destructive">{errors.malop}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -115,17 +209,20 @@ export function ClassEditDialog({
               <Input
                 id="editTenlop"
                 value={form.tenlop}
-                onChange={(event) => setForm((prev) => ({ ...prev, tenlop: event.target.value }))}
+                onChange={(event) => handleFieldChange("tenlop", event.target.value)}
                 placeholder="Ví dụ: Mầm 1A"
+                aria-invalid={Boolean(errors.tenlop)}
+                className={errors.tenlop ? "border-destructive" : undefined}
                 disabled={submitting}
               />
+              {errors.tenlop ? <p className="text-sm text-destructive">{errors.tenlop}</p> : null}
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="editGiaoVienId">Giáo viên chủ nhiệm</Label>
               <Select
                 value={form.giaoVienId}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, giaoVienId: value }))}
+                onValueChange={(value) => handleFieldChange("giaoVienId", value)}
                 disabled={submitting}
               >
                 <SelectTrigger id="editGiaoVienId">
@@ -146,10 +243,13 @@ export function ClassEditDialog({
               <Input
                 id="editAssistantTeacher"
                 value={form.assistantTeacher}
-                onChange={(event) => setForm((prev) => ({ ...prev, assistantTeacher: event.target.value }))}
+                onChange={(event) => handleFieldChange("assistantTeacher", event.target.value)}
                 placeholder="Nhập tên giáo viên phụ trợ"
+                aria-invalid={Boolean(errors.assistantTeacher)}
+                className={errors.assistantTeacher ? "border-destructive" : undefined}
                 disabled={submitting}
               />
+              {errors.assistantTeacher ? <p className="text-sm text-destructive">{errors.assistantTeacher}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -159,7 +259,7 @@ export function ClassEditDialog({
                 type="number"
                 min="1"
                 value={form.capacity}
-                onChange={(event) => setForm((prev) => ({ ...prev, capacity: event.target.value }))}
+                onChange={(event) => handleFieldChange("capacity", event.target.value)}
                 placeholder="30"
                 disabled={submitting}
               />
@@ -169,7 +269,7 @@ export function ClassEditDialog({
               <Label htmlFor="editStatus">Trạng thái</Label>
               <Select
                 value={form.status}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}
+                onValueChange={(value) => handleFieldChange("status", value)}
                 disabled={submitting}
               >
                 <SelectTrigger id="editStatus">
@@ -191,7 +291,7 @@ export function ClassEditDialog({
             <Textarea
               id="editFacilities"
               value={form.facilities}
-              onChange={(event) => setForm((prev) => ({ ...prev, facilities: event.target.value }))}
+              onChange={(event) => handleFieldChange("facilities", event.target.value)}
               placeholder="Nhập các mục, cách nhau bằng dấu phẩy"
               disabled={submitting}
             />
@@ -202,7 +302,7 @@ export function ClassEditDialog({
             <Textarea
               id="editNotes"
               value={form.notes}
-              onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+              onChange={(event) => handleFieldChange("notes", event.target.value)}
               placeholder="Nhập ghi chú lớp học"
               disabled={submitting}
             />

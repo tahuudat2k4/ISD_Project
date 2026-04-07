@@ -29,6 +29,18 @@ function getHealthBadge(health) {
   }
 }
 
+function getStatusBadge(status) {
+  if (status === "Nghỉ học") {
+    return <Badge variant="destructive">Nghỉ học</Badge>
+  }
+
+  if (status === "Nghỉ phép") {
+    return <Badge className="bg-amber-500 text-white hover:bg-amber-500">Nghỉ phép</Badge>
+  }
+
+  return <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Đang học</Badge>
+}
+
 export function StudentListTable({
   students,
   searchTerm,
@@ -82,6 +94,7 @@ export function StudentListTable({
                 <TableRow>
                   <TableHead className="w-25">Mã số</TableHead>
                   <TableHead>Họ tên</TableHead>
+                  <TableHead className="w-28">Trạng thái</TableHead>
                   <TableHead className="w-20">Giới tính</TableHead>
                   <TableHead className="w-25">Ngày sinh</TableHead>
                   <TableHead className="w-30">Lớp</TableHead>
@@ -100,6 +113,7 @@ export function StudentListTable({
                         <div className="text-xs text-muted-foreground">{student.address}</div>
                       </div>
                     </TableCell>
+                    <TableCell>{getStatusBadge(student.status)}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
                         {student.gender}

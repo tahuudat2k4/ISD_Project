@@ -230,7 +230,9 @@ export function BudClassFeature() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateClass}
         gradeLabel={targetGrade?.tenkhoi || "Chồi"}
+        gradeCode={gradeCode}
         teachers={teachers}
+        existingClasses={classes}
         submitting={createSubmitting}
       />
 
@@ -239,6 +241,7 @@ export function BudClassFeature() {
         onOpenChange={setEditOpen}
         onSubmit={handleUpdateClass}
         gradeLabel={targetGrade?.tenkhoi || "Chồi"}
+        gradeCode={gradeCode}
         teachers={teachers}
         classItem={editingClass}
         submitting={editSubmitting}
