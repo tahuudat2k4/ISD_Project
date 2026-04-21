@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ratingValues } from "./ratingData"
 
 export function RatingStats({ stats }) {
   return (
@@ -15,32 +16,32 @@ export function RatingStats({ stats }) {
       <Card>
         <CardContent className="pt-6">
           <div className="text-center">
-            <Badge className="bg-emerald-500 mx-auto mb-2">{stats.A}</Badge>
-            <p className="text-xs text-muted-foreground">A - Xuất sắc</p>
+            <Badge className="bg-red-500 mx-auto mb-2">{stats[ratingValues.NOT_MET]}</Badge>
+            <p className="text-xs text-muted-foreground">Chưa đạt</p>
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-6">
           <div className="text-center">
-            <Badge className="bg-blue-500 mx-auto mb-2">{stats.B}</Badge>
-            <p className="text-xs text-muted-foreground">B - Khá</p>
+            <Badge className="bg-amber-500 mx-auto mb-2">{stats[ratingValues.DEVELOPING]}</Badge>
+            <p className="text-xs text-muted-foreground">Đang phát triển</p>
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-6">
           <div className="text-center">
-            <Badge className="bg-amber-500 mx-auto mb-2">{stats.C}</Badge>
-            <p className="text-xs text-muted-foreground">C - Đạt</p>
+            <Badge className="bg-blue-500 mx-auto mb-2">{stats[ratingValues.MEETS]}</Badge>
+            <p className="text-xs text-muted-foreground">Đạt yêu cầu</p>
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-6">
           <div className="text-center">
-            <Badge className="bg-red-500 mx-auto mb-2">{stats.D}</Badge>
-            <p className="text-xs text-muted-foreground">D - Cần cố gắng</p>
+            <Badge className="bg-emerald-500 mx-auto mb-2">{stats[ratingValues.EXCEEDS]}</Badge>
+            <p className="text-xs text-muted-foreground">Vượt trội</p>
           </div>
         </CardContent>
       </Card>

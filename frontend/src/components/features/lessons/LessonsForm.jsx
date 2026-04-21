@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   Select,
   SelectContent,
@@ -18,99 +18,194 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { allClasses, classByGrade, gradeOptions, statusOptions, topics } from "./lessonsData"
+import { FileImage, FileText, Paperclip } from "lucide-react"
+import { topics } from "./lessonsData"
+
+const ACCEPTED_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]
+const MAX_ATTACHMENT_SIZE = 8 * 1024 * 1024
+
+const ATTACHMENT_TYPE_BY_EXTENSION = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+const getFileExtension = (fileName = "") => {
+  const normalizedName = String(fileName).trim().toLowerCase()
+  const lastDotIndex = normalizedName.lastIndexOf(".")
+
+  return lastDotIndex >= 0 ? normalizedName.slice(lastDotIndex) : ""
+}
+
+const resolveAttachmentMimeType = (file) => {
+  const detectedType = String(file?.type || "").trim().toLowerCase()
+  if (ACCEPTED_ATTACHMENT_TYPES.includes(detectedType)) {
+    return detectedType
+  }
+
+  return ATTACHMENT_TYPE_BY_EXTENSION[getFileExtension(file?.name)] || ""
+}
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result || ""))
+  reader.onerror = () => reject(new Error("Không thể đọc tệp đính kèm"))
+  reader.readAsDataURL(file)
+})
 
 const emptyForm = {
   code: "",
   title: "",
-  grade: "mam",
-  className: "",
+  classId: "",
   topic: "",
-  teacher: "",
   date: "",
-  duration: "",
-  status: "Sắp tới",
-  room: "",
-  objectivesText: "",
-  materialsText: "",
-  notes: "",
 }
 
-export function LessonsForm({ open, onOpenChange, lesson, onSubmit }) {
+export function LessonsForm({
+  open,
+  onOpenChange,
+  lesson,
+  onSubmit,
+  classOptions = [],
+  selectedClassId = "",
+  submitting = false,
+}) {
   const [formData, setFormData] = useState(emptyForm)
+  const [attachmentFile, setAttachmentFile] = useState(null)
+  const [attachmentError, setAttachmentError] = useState("")
+  const [removeAttachment, setRemoveAttachment] = useState(false)
+
+  const normalizedClassOptions = useMemo(() => {
+    return classOptions.map((classItem) => ({ ...classItem }))
+  }, [classOptions])
 
   useEffect(() => {
+    const defaultClass = normalizedClassOptions.find((classItem) => classItem.id === selectedClassId)
+      || normalizedClassOptions[0]
+      || null
+
     if (lesson) {
       setFormData({
         code: lesson.code || "",
         title: lesson.title || "",
-        grade: lesson.grade || "mam",
-        className: lesson.className || "",
+        classId: lesson.classId || defaultClass?.id || "",
         topic: lesson.topic || "",
-        teacher: lesson.teacher || "",
         date: lesson.date || "",
-        duration: lesson.duration || "",
-        status: lesson.status || "Sắp tới",
-        room: lesson.room || "",
-        objectivesText: (lesson.objectives || []).join(", "),
-        materialsText: (lesson.materials || []).join(", "),
-        notes: lesson.notes || "",
       })
+      setAttachmentFile(null)
+      setAttachmentError("")
+      setRemoveAttachment(false)
     } else {
-      setFormData(emptyForm)
+      setFormData({
+        ...emptyForm,
+        classId: defaultClass?.id || "",
+      })
+      setAttachmentFile(null)
+      setAttachmentError("")
+      setRemoveAttachment(false)
     }
-  }, [lesson])
+  }, [lesson, normalizedClassOptions, selectedClassId])
 
-  const classOptions = useMemo(() => {
-    return formData.grade === "all"
-      ? allClasses
-      : classByGrade[formData.grade] || []
-  }, [formData.grade])
+  const attachmentLabel = attachmentFile
+    ? attachmentFile.file.name
+    : removeAttachment
+      ? "Tài liệu sẽ được gỡ khỏi bài giảng"
+    : lesson?.attachment?.fileName || "Chọn ảnh hoặc tài liệu Word"
+
+  const AttachmentIcon = attachmentFile?.mimeType?.startsWith("image/") || (!removeAttachment && lesson?.attachment?.mimeType?.startsWith("image/"))
+    ? FileImage
+    : FileText
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
-    const objectives = formData.objectivesText
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
+  const handleAttachmentChange = (event) => {
+    const nextFile = event.target.files?.[0] || null
 
-    const materials = formData.materialsText
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
+    if (!nextFile) {
+      setAttachmentFile(null)
+      setAttachmentError("")
+      return
+    }
 
-    onSubmit({
+    const resolvedMimeType = resolveAttachmentMimeType(nextFile)
+
+    if (!resolvedMimeType) {
+      setAttachmentFile(null)
+      setAttachmentError("Chỉ hỗ trợ ảnh hoặc tài liệu Word (.doc, .docx)")
+      return
+    }
+
+    if (nextFile.size > MAX_ATTACHMENT_SIZE) {
+      setAttachmentFile(null)
+      setAttachmentError("Tệp đính kèm vượt quá 8MB")
+      return
+    }
+
+    setAttachmentFile({ file: nextFile, mimeType: resolvedMimeType })
+    setAttachmentError("")
+    setRemoveAttachment(false)
+  }
+
+  const handleRemoveAttachment = () => {
+    setAttachmentFile(null)
+    setAttachmentError("")
+    setRemoveAttachment(true)
+  }
+
+  const handleSubmit = async () => {
+    let attachment = lesson?.attachment || null
+
+    if (attachmentFile) {
+      const dataUrl = await readFileAsDataUrl(attachmentFile.file)
+      const normalizedDataUrl = dataUrl.replace(/^data:[^;]*;base64,/, `data:${attachmentFile.mimeType};base64,`)
+      attachment = {
+        fileName: attachmentFile.file.name,
+        mimeType: attachmentFile.mimeType,
+        size: attachmentFile.file.size,
+        dataUrl: normalizedDataUrl,
+      }
+    } else if (removeAttachment) {
+      attachment = null
+    }
+
+    const isSubmitted = await onSubmit({
       ...lesson,
       code: formData.code.trim(),
       title: formData.title.trim(),
-      grade: formData.grade,
-      className: formData.className,
+      classId: formData.classId,
       topic: formData.topic,
-      teacher: formData.teacher.trim(),
       date: formData.date,
-      duration: formData.duration.trim(),
-      status: formData.status,
-      room: formData.room.trim(),
-      objectives,
-      materials,
-      notes: formData.notes.trim(),
+      attachment,
+      removeAttachment,
     })
 
-    onOpenChange(false)
+    if (isSubmitted !== false) {
+      onOpenChange(false)
+    }
   }
 
-  const isValid = formData.code && formData.title && formData.className && formData.date
+  const isValid = formData.code && formData.title && formData.classId && formData.topic && formData.date && !attachmentError
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[680px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-170 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{lesson ? "Cập nhật bài giảng" : "Tạo bài giảng mới"}</DialogTitle>
           <DialogDescription>
-            Điền thông tin bài giảng cho từng lớp và từng khối.
+            Điền thông tin bài giảng cho lớp học đã chọn.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,11 +222,10 @@ export function LessonsForm({ open, onOpenChange, lesson, onSubmit }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Ngày *</Label>
-              <Input
-                id="date"
-                type="date"
+              <DatePicker
                 value={formData.date}
-                onChange={(e) => handleChange("date", e.target.value)}
+                onChange={(value) => handleChange("date", value)}
+                placeholder="Chọn ngày học"
               />
             </div>
           </div>
@@ -148,52 +242,10 @@ export function LessonsForm({ open, onOpenChange, lesson, onSubmit }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Khối *</Label>
-              <Select
-                value={formData.grade}
-                onValueChange={(value) => {
-                  handleChange("grade", value)
-                  handleChange("className", "")
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn khối" />
-                </SelectTrigger>
-                <SelectContent>
-                  {gradeOptions.map((grade) => (
-                    <SelectItem key={grade.value} value={grade.value}>
-                      {grade.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Lớp *</Label>
-              <Select
-                value={formData.className}
-                onValueChange={(value) => handleChange("className", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn lớp" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classOptions.map((cls) => (
-                    <SelectItem key={cls} value={cls}>
-                      {cls}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Chủ đề</Label>
+              <Label>Môn học *</Label>
               <Select value={formData.topic} onValueChange={(value) => handleChange("topic", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn chủ đề" />
+                  <SelectValue placeholder="Chọn môn học" />
                 </SelectTrigger>
                 <SelectContent>
                   {topics.map((topic) => (
@@ -205,80 +257,31 @@ export function LessonsForm({ open, onOpenChange, lesson, onSubmit }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Trạng thái</Label>
-              <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.filter((s) => s.value !== "all").map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Tài liệu bài giảng</Label>
+              <label htmlFor="lesson-attachment" className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-input bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40">
+                <span className="flex size-9 items-center justify-center rounded-md bg-background text-muted-foreground">
+                  <Paperclip className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{attachmentLabel}</span>
+                  <span className="block text-xs text-muted-foreground">Hỗ trợ ảnh hoặc tài liệu Word (.doc, .docx)</span>
+                </span>
+                <AttachmentIcon className="size-4 text-muted-foreground" />
+                <Input
+                  id="lesson-attachment"
+                  type="file"
+                  accept=".doc,.docx,image/*"
+                  onChange={handleAttachmentChange}
+                  className="hidden"
+                />
+              </label>
+              {lesson?.attachment && !attachmentFile && !removeAttachment ? (
+                <Button type="button" variant="ghost" size="xs" className="px-0 text-destructive hover:text-destructive" onClick={handleRemoveAttachment}>
+                  Gỡ tài liệu hiện tại
+                </Button>
+              ) : null}
+              {attachmentError ? <p className="text-xs text-destructive">{attachmentError}</p> : null}
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Giáo viên</Label>
-              <Input
-                placeholder="Nhập tên giáo viên"
-                value={formData.teacher}
-                onChange={(e) => handleChange("teacher", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phòng học</Label>
-              <Input
-                placeholder="Phòng 101"
-                value={formData.room}
-                onChange={(e) => handleChange("room", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Thời lượng</Label>
-              <Input
-                placeholder="45 phút"
-                value={formData.duration}
-                onChange={(e) => handleChange("duration", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Mục tiêu (phân tách bằng dấu phẩy)</Label>
-            <Textarea
-              rows={2}
-              placeholder="Nhận biết chữ A, Phát âm chuẩn, Tô chữ A"
-              value={formData.objectivesText}
-              onChange={(e) => handleChange("objectivesText", e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Dụng cụ (phân tách bằng dấu phẩy)</Label>
-            <Textarea
-              rows={2}
-              placeholder="Thẻ chữ, Bảng, Bút màu"
-              value={formData.materialsText}
-              onChange={(e) => handleChange("materialsText", e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Ghi chú</Label>
-            <Textarea
-              rows={2}
-              placeholder="Ghi chú cho bài giảng"
-              value={formData.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
-            />
           </div>
         </div>
 
@@ -286,7 +289,7 @@ export function LessonsForm({ open, onOpenChange, lesson, onSubmit }) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Hủy
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid}>
+          <Button onClick={handleSubmit} disabled={!isValid || submitting}>
             {lesson ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogFooter>

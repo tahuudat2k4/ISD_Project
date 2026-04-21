@@ -18,12 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { classService } from "@/services/classService"
 import { cn } from "@/lib/utils"
 
 const STUDENT_STATUSES = ["Đang học", "Nghỉ học", "Nghỉ phép"]
 const STUDENT_CODE_REGEX = /^[A-Za-z0-9_-]{2,20}$/
-const PHONE_REGEX = /^0[35789][0-9]{8}$/
+const PHONE_REGEX = /^0[0-9]{9}$/
 const DISPLAY_DATE_REGEX = /^(\d{2})\/(\d{2})\/(\d{4})$/
 
 const formatDateForDisplay = (value) => {
@@ -138,6 +137,11 @@ const normalizeStudentForForm = (student) => ({
 
 const normalizeCode = (value) => String(value || "").trim().toLowerCase()
 
+const normalizeClassOptions = (classOptions = []) => classOptions.map((classItem) => ({
+  id: classItem?.id || classItem?._id || "",
+  name: classItem?.name || classItem?.tenlop || "",
+}))
+
 const hasLeadingOrTrailingSpaces = (value) => /^\s|\s$/.test(value)
 
 const hasMultipleSpaces = (value) => /\s{2,}/.test(value)
@@ -205,7 +209,7 @@ const validateStudentForm = ({ formData, classes, existingStudents, currentStude
 
   if (!formData.classId) {
     errors.classId = "Lớp học là bắt buộc"
-  } else if (!classes.some((item) => item._id === formData.classId)) {
+  } else if (!classes.some((item) => item.id === formData.classId)) {
     errors.classId = "Lớp học đã chọn không hợp lệ"
   }
 
@@ -261,24 +265,19 @@ const getFieldErrorProps = (error) => ({
   className: cn(error && "border-destructive"),
 })
 
-export function StudentListForm({ open, onOpenChange, student, onSubmit, existingStudents = [] }) {
-  const [classes, setClasses] = useState([])
+export function StudentListForm({
+  open,
+  onOpenChange,
+  student,
+  onSubmit,
+  existingStudents = [],
+  classOptions = [],
+  disableClassSelection = false,
+  allowCreateStudent = true,
+}) {
+  const classes = normalizeClassOptions(classOptions)
   const [formData, setFormData] = useState(getInitialFormData())
   const [errors, setErrors] = useState({})
-
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const res = await classService.getClasses()
-        setClasses(res?.data || [])
-      } catch (error) {
-        console.error("Error fetching classes:", error)
-      }
-    }
-    if (open) {
-      fetchClasses()
-    }
-  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -311,6 +310,10 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit, existin
   }
 
   const handleSubmit = async () => {
+    if (!student && !allowCreateStudent) {
+      return
+    }
+
     const validationErrors = validateStudentForm({
       formData,
       classes,
@@ -419,10 +422,11 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit, existin
             <Label htmlFor="className">Lớp *</Label>
             <Select 
               value={formData.classId} 
+              disabled={disableClassSelection}
               onValueChange={(value) => {
-                const selectedClass = classes.find(c => c._id === value)
+                const selectedClass = classes.find((classItem) => classItem.id === value)
                 handleChange("classId", value)
-                handleChange("className", selectedClass?.tenlop || "")
+                handleChange("className", selectedClass?.name || "")
               }}
             >
               <SelectTrigger id="className" className={cn("w-full", errors.classId && "border-destructive")} aria-invalid={Boolean(errors.classId)}>
@@ -430,8 +434,8 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit, existin
               </SelectTrigger>
               <SelectContent>
                 {classes.map((cls) => (
-                  <SelectItem key={cls._id} value={cls._id}>
-                    {cls.tenlop}
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -496,7 +500,7 @@ export function StudentListForm({ open, onOpenChange, student, onSubmit, existin
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Hủy
           </Button>
-          <Button onClick={handleSubmit}>
+          <Button onClick={handleSubmit} disabled={!student && !allowCreateStudent}>
             {student ? "Cập nhật" : "Thêm mới"}
           </Button>
         </DialogFooter>

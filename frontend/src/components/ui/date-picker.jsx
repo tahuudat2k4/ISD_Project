@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
+export function DatePicker({ value, onChange, placeholder = "Chọn ngày", disabled = false }) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState("")
   
@@ -32,6 +32,10 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
   const [currentMonth, setCurrentMonth] = React.useState(parseDate(value))
 
   React.useEffect(() => {
+    setCurrentMonth(parseDate(value))
+  }, [value])
+
+  React.useEffect(() => {
     if (value) {
       setInputValue(parseDate(value).format("DD/MM/YYYY"))
     } else {
@@ -47,6 +51,10 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
   }
 
   const handleInputChange = (e) => {
+    if (disabled) {
+      return
+    }
+
     const input = e.target.value
     setInputValue(input)
     // Chỉ parse khi đúng định dạng DD/MM/YYYY (8 số, 2 dấu /)
@@ -111,10 +119,12 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
             onChange={handleInputChange}
             placeholder={placeholder}
             className="pr-10"
+            disabled={disabled}
           />
           <button
             type="button"
-            onClick={() => setIsOpen(true)}
+            onClick={() => !disabled && setIsOpen(true)}
+            disabled={disabled}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Calendar className="h-4 w-4" />
@@ -128,6 +138,7 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
             <Button
               variant="outline"
               size="sm"
+              disabled={disabled}
               onClick={() => setCurrentMonth(currentMonth.subtract(1, "month"))}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -138,6 +149,7 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
             <Button
               variant="outline"
               size="sm"
+              disabled={disabled}
               onClick={() => setCurrentMonth(currentMonth.add(1, "month"))}
             >
               <ChevronRight className="h-4 w-4" />
@@ -166,6 +178,7 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
                       key={dayIndex}
                       variant={isSelected ? "default" : "ghost"}
                       size="sm"
+                      disabled={disabled}
                       className={`h-8 w-8 p-0 text-xs ${
                         !day.isCurrentMonth ? "text-muted-foreground/50" : ""
                       } ${isToday && !isSelected ? "border border-primary" : ""}`}
@@ -184,6 +197,7 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày" }) {
             variant="outline"
             size="sm"
             className="w-full"
+            disabled={disabled}
             onClick={() => {
               handleDateSelect(dayjs())
             }}

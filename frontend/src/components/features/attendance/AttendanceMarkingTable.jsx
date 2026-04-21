@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Check, X, Clock, Save, RotateCcw } from "lucide-react"
 import {
   Table,
@@ -26,12 +27,14 @@ function getStatusBadge(status) {
 export function AttendanceMarkingTable({ 
   records, 
   onStatusChange,
+  onNoteChange,
   onSave,
   onReset,
   hasChanges,
   isSaving,
   selectedDate,
-  onDateChange,
+  selectedClassName,
+  selectedTeacherName,
   className = ""
 }) {
   if (!records || records.length === 0) {
@@ -50,15 +53,6 @@ export function AttendanceMarkingTable({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Danh sách điểm danh</CardTitle>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Ngày</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => onDateChange(e.target.value)}
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </div>
             <Button
               variant="outline"
               size="sm"
@@ -86,11 +80,12 @@ export function AttendanceMarkingTable({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-[80px]">STT</TableHead>
-                <TableHead className="w-[100px]">Mã số</TableHead>
+                <TableHead className="w-20">STT</TableHead>
+                <TableHead className="w-25">Mã số</TableHead>
                 <TableHead className="flex-1">Họ tên</TableHead>
-                <TableHead className="w-[120px]">Trạng thái</TableHead>
-                <TableHead className="text-center w-[280px]">Điểm danh nhanh</TableHead>
+                <TableHead className="w-30">Trạng thái</TableHead>
+                <TableHead className="text-center w-70">Điểm danh nhanh</TableHead>
+                <TableHead className="w-55">Ghi chú</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -148,6 +143,15 @@ export function AttendanceMarkingTable({
                         <span className="hidden sm:inline">Vắng</span>
                       </Button>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={record.note}
+                      onChange={(event) => onNoteChange(record.id, event.target.value)}
+                      placeholder="Ghi chú nếu có"
+                      className="h-8 text-xs"
+                      maxLength={255}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

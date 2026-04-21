@@ -97,6 +97,39 @@ const resolveGradeId = async ({ khoiId, makhoi }) => {
 	return resolvedGradeId;
 };
 
+const validateHomeroomTeacherAssignment = async ({ giaoVienId, classId }) => {
+	const [teacher, existingAssignment] = await Promise.all([
+		Teacher.findById(giaoVienId).select('_id hotenGV masoGV').lean(),
+		Class.findOne({
+			giaoVienId,
+			...(classId ? { _id: { $ne: classId } } : {}),
+		})
+			.select('_id malop tenlop')
+			.lean(),
+	]);
+
+	if (!teacher) {
+		return {
+			ok: false,
+			status: 404,
+			message: 'Teacher not found',
+		};
+	}
+
+	if (existingAssignment) {
+		return {
+			ok: false,
+			status: 400,
+			message: `Giáo viên ${teacher.hotenGV} (${teacher.masoGV}) đã là giáo viên chủ nhiệm của lớp ${existingAssignment.tenlop || existingAssignment.malop}`,
+		};
+	}
+
+	return {
+		ok: true,
+		teacher,
+	};
+};
+
 export const getClasses = async (req, res) => {
 	try {
 		const items = await Class.find().populate('khoiId').populate('giaoVienId');
@@ -180,6 +213,14 @@ export const createClass = async (req, res) => {
 			return res.status(400).json({
 				success: false,
 				message: 'Tên lớp đã tồn tại',
+			});
+		}
+
+		const teacherAssignmentValidation = await validateHomeroomTeacherAssignment({ giaoVienId });
+		if (!teacherAssignmentValidation.ok) {
+			return res.status(teacherAssignmentValidation.status).json({
+				success: false,
+				message: teacherAssignmentValidation.message,
 			});
 		}
 
@@ -275,6 +316,18 @@ export const updateClass = async (req, res) => {
 
 		if (duplicateName) {
 			return res.status(400).json({ success: false, message: 'Tên lớp đã tồn tại' });
+		}
+
+		const teacherAssignmentValidation = await validateHomeroomTeacherAssignment({
+			giaoVienId,
+			classId: req.params.id,
+		});
+
+		if (!teacherAssignmentValidation.ok) {
+			return res.status(teacherAssignmentValidation.status).json({
+				success: false,
+				message: teacherAssignmentValidation.message,
+			});
 		}
 
 		existing.malop = normalizedMalop;

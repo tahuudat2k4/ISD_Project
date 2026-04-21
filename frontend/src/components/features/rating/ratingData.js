@@ -1,18 +1,13 @@
+export const ratingValues = {
+  NOT_MET: "CHUA_DAT",
+  DEVELOPING: "DANG_PHAT_TRIEN",
+  MEETS: "DAT_YEU_CAU",
+  EXCEEDS: "VUOT_TROI",
+}
+
 export const ratingOptions = [
-  { value: "A", label: "A - Xuất sắc" },
-  { value: "B", label: "B - Khá" },
-  { value: "C", label: "C - Đạt" },
-  { value: "D", label: "D - Cần cố gắng" },
+  { value: ratingValues.NOT_MET, label: "Chưa đạt" },
+  { value: ratingValues.DEVELOPING, label: "Đang phát triển" },
+  { value: ratingValues.MEETS, label: "Đạt yêu cầu" },
+  { value: ratingValues.EXCEEDS, label: "Vượt trội" },
 ]
-
-export const allClasses = [
-  "Mầm 1",
-  "Mầm 2",
-  "Mầm 3",
-  "Chồi 1",
-  "Chồi 2",
-  "Lá 1",
-]
-
-// Mock ratings - will be replaced with real data from database
-export const mockRatings = []

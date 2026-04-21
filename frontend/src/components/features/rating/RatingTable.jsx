@@ -18,7 +18,16 @@ import {
 import { Save, RotateCcw } from "lucide-react"
 import { ratingOptions } from "./ratingData"
 
-export function RatingTable({ records, onRatingChange, onSave, onReset, hasChanges, isSaving }) {
+export function RatingTable({
+  records,
+  onRatingChange,
+  onSave,
+  onReset,
+  hasChanges,
+  isSaving,
+  canEdit = true,
+  disabledReason = "",
+}) {
   if (!records || records.length === 0) {
     return (
       <Card>
@@ -33,13 +42,18 @@ export function RatingTable({ records, onRatingChange, onSave, onReset, hasChang
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Danh sách xếp loại</CardTitle>
+          <div>
+            <CardTitle className="text-base">Danh sách xếp loại</CardTitle>
+            {!canEdit && disabledReason ? (
+              <p className="mt-1 text-xs text-muted-foreground">{disabledReason}</p>
+            ) : null}
+          </div>
           <div className="flex gap-2 sm:justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={onReset}
-              disabled={!hasChanges || isSaving}
+              disabled={!canEdit || !hasChanges || isSaving}
               className="gap-2"
             >
               <RotateCcw className="size-4" />
@@ -48,7 +62,7 @@ export function RatingTable({ records, onRatingChange, onSave, onReset, hasChang
             <Button
               size="sm"
               onClick={onSave}
-              disabled={!hasChanges || isSaving}
+              disabled={!canEdit || !hasChanges || isSaving}
               className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
               <Save className="size-4" />
@@ -62,10 +76,10 @@ export function RatingTable({ records, onRatingChange, onSave, onReset, hasChang
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-[80px]">STT</TableHead>
-                <TableHead className="w-[120px]">Mã số</TableHead>
+                <TableHead className="w-20">STT</TableHead>
+                <TableHead className="w-30">Mã số</TableHead>
                 <TableHead>Họ tên</TableHead>
-                <TableHead className="w-[200px]">Xếp loại</TableHead>
+                <TableHead className="w-50">Xếp loại</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -78,13 +92,15 @@ export function RatingTable({ records, onRatingChange, onSave, onReset, hasChang
                   <TableCell className="text-sm font-medium">{record.studentName}</TableCell>
                   <TableCell>
                     <Select
-                      value={record.rating || ""}
-                      onValueChange={(value) => onRatingChange(record.id, value)}
+                      value={record.rating || "UNRATED"}
+                      onValueChange={(value) => onRatingChange(record.id, value === "UNRATED" ? "" : value)}
+                      disabled={!canEdit}
                     >
-                      <SelectTrigger size="sm" className="w-[170px]">
+                      <SelectTrigger size="sm" className="w-42">
                         <SelectValue placeholder="Chọn xếp loại" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="UNRATED">Chưa xếp loại</SelectItem>
                         {ratingOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}

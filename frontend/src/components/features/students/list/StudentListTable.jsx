@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Eye, Pencil, Search, Trash2 } from "lucide-react"
+import { Ban, Eye, Pencil, Search, Trash2 } from "lucide-react"
 
 function getHealthBadge(health) {
   if (health === "Tốt") {
@@ -53,11 +53,14 @@ export function StudentListTable({
   onViewDetails,
   canManageStudents,
 }) {
+  const showClassFilter = classOptions.length > 1
+  const tableTitle = "Danh sách học sinh"
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="gap-4 pb-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <CardTitle className="text-base">Danh sách học sinh</CardTitle>
+          <CardTitle className="text-base">{tableTitle}</CardTitle>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <div className="relative w-full sm:w-70">
@@ -70,19 +73,21 @@ export function StudentListTable({
               />
             </div>
 
-            <Select value={selectedClass} onValueChange={onClassChange}>
-              <SelectTrigger className="w-full sm:w-45">
-                <SelectValue placeholder="Chọn lớp" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả lớp</SelectItem>
-                {classOptions.map((cls) => (
-                  <SelectItem key={cls.code} value={cls.code}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {showClassFilter ? (
+              <Select value={selectedClass} onValueChange={onClassChange}>
+                <SelectTrigger className="w-full sm:w-45">
+                  <SelectValue placeholder="Chọn lớp" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả lớp</SelectItem>
+                  {classOptions.map((cls) => (
+                    <SelectItem key={cls.code} value={cls.code}>
+                      {cls.name}{cls.isManageable ? " ( lớp của bạn )" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
           </div>
         </div>
       </CardHeader>
@@ -131,15 +136,15 @@ export function StudentListTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => onViewDetails(student)}
-                        >
-                          <Eye className="size-3.5" />
-                        </Button>
-                        {canManageStudents ? (
+                        {student.canManage ? (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={() => onViewDetails(student)}
+                            >
+                              <Eye className="size-3.5" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon-xs"
@@ -156,6 +161,10 @@ export function StudentListTable({
                               <Trash2 className="size-3.5" />
                             </Button>
                           </>
+                        ) : canManageStudents ? (
+                          <span className="inline-flex items-center text-red-600" title="Không thuộc lớp phụ trách">
+                            <Ban className="size-3.5" />
+                          </span>
                         ) : null}
                       </div>
                     </TableCell>

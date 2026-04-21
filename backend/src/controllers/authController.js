@@ -51,6 +51,7 @@ export const signIn = async (req, res) => {
             token: accessToken,
             user: {
                 id: existingUser._id,
+                teacherId: existingUser.teacherId || null,
                 username: existingUser.username,
                 role: existingUser.role
             }
@@ -120,6 +121,7 @@ export const refreshToken = async (req, res) => {
                 token: newAccessToken,
                 user: {
                     id: user._id,
+                    teacherId: user.teacherId || null,
                     username: user.username,
                     role: user.role
                 }

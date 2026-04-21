@@ -1,5 +1,6 @@
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   Select,
   SelectContent,
@@ -8,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { allClasses } from "./ratingData"
 
 export function RatingFilters({
   searchTerm,
@@ -17,13 +17,15 @@ export function RatingFilters({
   onClassChange,
   selectedDate,
   onDateChange,
+  classOptions = [],
+  isLoadingClasses = false,
 }) {
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-50">
               <label className="text-sm font-medium mb-2 block">Tìm học sinh</label>
               <div className="flex items-center gap-2 border border-input rounded-md px-3 py-2">
                 <Search className="size-4 text-muted-foreground" />
@@ -36,29 +38,28 @@ export function RatingFilters({
               </div>
             </div>
 
-            <div className="min-w-[180px]">
+            <div className="min-w-45">
               <label className="text-sm font-medium mb-2 block">Chọn lớp</label>
               <Select value={selectedClass} onValueChange={onClassChange}>
                 <SelectTrigger size="sm" className="h-10">
-                  <SelectValue placeholder="Chọn lớp" />
+                  <SelectValue placeholder={isLoadingClasses ? "Đang tải lớp..." : "Chọn lớp"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {allClasses.map((cls) => (
-                    <SelectItem key={cls} value={cls}>
-                      {cls}
+                  {classOptions.map((classItem) => (
+                    <SelectItem key={classItem.id} value={classItem.id}>
+                      {classItem.isCurrentTeacherClass ? `${classItem.name} (lớp của bạn)` : classItem.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="min-w-[160px]">
+            <div className="min-w-40">
               <label className="text-sm font-medium mb-2 block">Ngày</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={selectedDate}
-                onChange={(e) => onDateChange(e.target.value)}
-                className="h-10 text-sm"
+                onChange={onDateChange}
+                placeholder="Chọn ngày đánh giá"
               />
             </div>
           </div>

@@ -136,6 +136,10 @@ export function ClassCreateDialog({
       nextErrors.tenlop = "Tên lớp đã tồn tại"
     }
 
+    if (!form.giaoVienId) {
+      nextErrors.giaoVienId = "Vui lòng chọn giáo viên chủ nhiệm"
+    }
+
     const assistantTeacherError = validateAssistantTeacher(form.assistantTeacher)
     if (assistantTeacherError) {
       nextErrors.assistantTeacher = assistantTeacherError
@@ -228,11 +232,12 @@ export function ClassCreateDialog({
                 <SelectContent>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher._id} value={teacher._id}>
-                      {teacher.hotenGV} ({teacher.masoGV})
+                      {teacher.hotenGV} ({teacher.masoGV}){String(teacher.class || "").trim() ? ` (${teacher.class})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.giaoVienId ? <p className="text-sm text-destructive">{errors.giaoVienId}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -309,7 +314,7 @@ export function ClassCreateDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Hủy
             </Button>
-            <Button type="submit" disabled={submitting || teachers.length === 0}>
+            <Button type="submit" disabled={submitting}>
               {submitting ? (
                 <>
                   <LoaderCircle className="size-4 animate-spin" />
