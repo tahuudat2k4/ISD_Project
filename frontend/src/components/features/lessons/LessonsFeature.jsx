@@ -39,7 +39,6 @@ export function LessonsFeature() {
   const currentUser = authService.getCurrentUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
-  const [selectedTopic, setSelectedTopic] = useState("all")
   const [selectedDate, setSelectedDate] = useState("")
   const [lessons, setLessons] = useState([])
   const [selectedLesson, setSelectedLesson] = useState(null)
@@ -152,13 +151,11 @@ export function LessonsFeature() {
 
       const matchesClass = selectedClass === "all" || lesson.classId === selectedClass
 
-      const matchesTopic = selectedTopic === "all" || lesson.topic === selectedTopic
-
       const matchesDate = !selectedDate || lesson.date === selectedDate
 
-      return matchesSearch && matchesClass && matchesTopic && matchesDate
+      return matchesSearch && matchesClass && matchesDate
     })
-  }, [lessons, searchTerm, selectedClass, selectedTopic, selectedDate])
+  }, [lessons, searchTerm, selectedClass, selectedDate])
 
   const canCreateLesson = Boolean(selectedClassOption?.canCreateLesson)
   const createDisabledReason = selectedClass === "all"
@@ -319,8 +316,6 @@ export function LessonsFeature() {
         onSearchChange={setSearchTerm}
         selectedClass={selectedClass}
         onClassChange={setSelectedClass}
-        selectedTopic={selectedTopic}
-        onTopicChange={setSelectedTopic}
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
         classOptions={classOptions}

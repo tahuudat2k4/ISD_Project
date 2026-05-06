@@ -9,15 +9,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { topics } from "./lessonsData"
 
 export function LessonsFilters({
   searchTerm,
   onSearchChange,
   selectedClass,
   onClassChange,
-  selectedTopic,
-  onTopicChange,
   selectedDate,
   onDateChange,
   classOptions = [],
@@ -52,23 +49,6 @@ export function LessonsFilters({
                   {classOptions.map((classItem) => (
                     <SelectItem key={classItem.id} value={classItem.id}>
                       {classItem.name}{classItem.isCurrentTeacherClass ? " (lớp của bạn)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="min-w-32.5">
-              <label className="text-xs text-muted-foreground mb-1 block">Chủ đề</label>
-              <Select value={selectedTopic} onValueChange={onTopicChange}>
-                <SelectTrigger size="sm">
-                  <SelectValue placeholder="Chọn chủ đề" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả chủ đề</SelectItem>
-                  {topics.map((topic) => (
-                    <SelectItem key={topic} value={topic}>
-                      {topic}
                     </SelectItem>
                   ))}
                 </SelectContent>

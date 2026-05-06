@@ -181,16 +181,19 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
         newErrors.degree = "Trình độ không được có khoảng trắng ở đầu hoặc cuối"
       } else if (/\s{2,}/.test(degree)) {
         newErrors.degree = "Trình độ không được có nhiều hơn 1 khoảng trắng liên tiếp"
-      } else if (!/^[\p{L}\d\s.,\-_]{2,50}$/u.test(degree)) {
-        newErrors.degree = "Trình độ chỉ cho phép chữ, số, dấu cách, dấu chấm, phẩy, gạch ngang, gạch dưới và tối đa 50 ký tự"
+      } else if (!/^[\p{L}\s]{2,50}$/u.test(degree)) {
+        newErrors.degree = "Trình độ chỉ cho phép chữ và khoảng cách, tối đa 50 ký tự"
       }
     }
 
     // Kiểm tra ngày sinh và ngày vào làm không được là ngày trong tương lai
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    let dob = null
+    let join = null
+
     if (formData.dateOfBirth) {
-      const dob = parseDateString(formData.dateOfBirth)
+      dob = parseDateString(formData.dateOfBirth)
       if (!dob) {
         newErrors.dateOfBirth = "Ngày sinh phải có định dạng dd/mm/yyyy"
       } else if (dob > today) {
@@ -198,12 +201,17 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
       }
     }
     if (formData.joinDate) {
-      const join = parseDateString(formData.joinDate)
+      join = parseDateString(formData.joinDate)
       if (!join) {
         newErrors.joinDate = "Ngày vào làm phải có định dạng dd/mm/yyyy"
       } else if (join > today) {
         newErrors.joinDate = "Ngày vào làm không hợp lệ"
       }
+    }
+
+    // Kiểm tra ngày vào làm phải sau ngày sinh
+    if (dob && join && join <= dob) {
+      newErrors.joinDate = "Ngày vào làm phải sau ngày sinh"
     }
 
     setErrors(newErrors)

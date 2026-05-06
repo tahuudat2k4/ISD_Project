@@ -186,8 +186,8 @@ export function StudentListFeature() {
 
     try {
       setDeleteSubmitting(true)
-      const response = await studentService.deleteStudent(deletingStudent.id)
-      toast.success(response?.message || "Đã xóa học sinh thành công!")
+      await studentService.deleteStudent(deletingStudent.id)
+      toast.success("Đã xóa học sinh thành công !")
       setIsDeleteOpen(false)
       setDeletingStudent(null)
       await loadStudents()

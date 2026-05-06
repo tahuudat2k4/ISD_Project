@@ -44,6 +44,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
   const [addressError, setAddressError] = React.useState("")
   const [dobError, setDobError] = React.useState("")
   const [joinDateError, setJoinDateError] = React.useState("")
+  const [degreeError, setDegreeError] = React.useState("")
 
   React.useEffect(() => {
     if (teacher && open) {
@@ -138,7 +139,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
       }))
       if (!value) {
         setJoinDateError("Ngày vào làm không được để trống")
-      } else if (formData.dateOfBirth && dayjs(value).isBefore(dayjs(formData.dateOfBirth), 'day')) {
+      } else if (formData.dateOfBirth && dayjs(value).isSameOrBefore(dayjs(formData.dateOfBirth), 'day')) {
         setJoinDateError("Ngày vào làm phải sau ngày sinh")
       } else if (dayjs(value).isAfter(dayjs(), 'day')) {
         setJoinDateError("Ngày vào làm không được lớn hơn ngày hiện tại")
@@ -207,7 +208,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
     if (!formData.joinDate) {
       setJoinDateError("Ngày vào làm không được để trống")
       valid = false
-    } else if (formData.dateOfBirth && dayjs(formData.joinDate).isBefore(dayjs(formData.dateOfBirth), 'day')) {
+    } else if (formData.dateOfBirth && dayjs(formData.joinDate).isSameOrBefore(dayjs(formData.dateOfBirth), 'day')) {
       setJoinDateError("Ngày vào làm phải sau ngày sinh")
       valid = false
     } else if (dayjs(formData.joinDate).isAfter(dayjs(), 'day')) {
@@ -398,7 +399,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="degree" className="font-semibold">
-                      Trình độ <span className="text-red-500">*</span>
+                      Trình độ
                     </Label>
                     <Input
                       id="degree"
@@ -407,12 +408,11 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
                       onChange={handleChange}
                       placeholder="Cử nhân Sư phạm Mầm non"
                       maxLength={50}
-                      required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="experience" className="font-semibold">
-                      Kinh nghiệm <span className="text-red-500">*</span>
+                      Kinh nghiệm
                     </Label>
                     <Select value={formData.experience} onValueChange={(value) => handleSelectChange("experience", value)}>
                       <SelectTrigger id="experience">
@@ -430,7 +430,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="subject" className="font-semibold">
-                    Môn giảng dạy <span className="text-red-500">*</span>
+                    Môn giảng dạy
                   </Label>
                   <Input
                     id="subject"
@@ -438,14 +438,13 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
                     value={formData.subject}
                     onChange={handleChange}
                     placeholder="Toán - Tiếng Việt"
-                    required
                     disabled={isOwnProfile}
                   />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="class" className="font-semibold">
-                      Lớp chủ nhiệm <span className="text-red-500">*</span>
+                      Lớp chủ nhiệm
                     </Label>
                     <Input
                       id="class"
@@ -453,13 +452,12 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
                       value={formData.class}
                       onChange={handleChange}
                       placeholder="Mầm 1A"
-                      required
                       disabled={isOwnProfile}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="status" className="font-semibold">
-                      Trạng thái <span className="text-red-500">*</span>
+                      Trạng thái
                     </Label>
                     <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
                       <SelectTrigger id="status">

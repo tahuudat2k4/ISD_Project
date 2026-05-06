@@ -147,7 +147,7 @@ export function AttendanceMarkingFeature() {
     setAttendanceData((prev) =>
       prev.map((record) =>
         record.id === studentId
-          ? { ...record, note: nextNote.slice(0, 255) }
+          ? { ...record, note: nextNote }
           : record
       )
     )
@@ -159,8 +159,16 @@ export function AttendanceMarkingFeature() {
       return
     }
 
-    if (attendanceData.some((record) => !record.status)) {
-      toast.error("Vui lòng chọn trạng thái cho tất cả học sinh trước khi lưu")
+    const recordsToSave = attendanceData
+      .filter((record) => record.status)
+      .map((record) => ({
+        studentId: record.id,
+        status: record.status,
+        note: record.note,
+      }))
+
+    if (!recordsToSave.length) {
+      toast.error("Vui lòng chọn ít nhất một trạng thái điểm danh trước khi lưu")
       return
     }
 
@@ -169,11 +177,7 @@ export function AttendanceMarkingFeature() {
       const response = await attendanceService.saveRecords({
         classId: selectedClass,
         date: selectedDate,
-        records: attendanceData.map((record) => ({
-          studentId: record.id,
-          status: record.status,
-          note: record.note,
-        })),
+        records: recordsToSave,
       })
       const savedRecords = cloneRecords(response?.data?.records || [])
       setAttendanceData(savedRecords)

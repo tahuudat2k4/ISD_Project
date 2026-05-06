@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import dayjs from "dayjs"
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,12 @@ const ACCEPTED_ATTACHMENT_TYPES = [
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]
+
+const LESSON_TITLE_PATTERN = /^[\p{L}0-9\s]+$/u
+const DURATION_PATTERN = /^[\p{L}0-9\s]+$/u
+const MIN_TITLE_LENGTH = 3
+const MAX_TITLE_LENGTH = 255
+const MAX_DURATION_LENGTH = 50
 const MAX_ATTACHMENT_SIZE = 8 * 1024 * 1024
 
 const ATTACHMENT_TYPE_BY_EXTENSION = {
@@ -70,6 +77,7 @@ const emptyForm = {
   classId: "",
   topic: "",
   date: "",
+  duration: "",
 }
 
 export function LessonsForm({
@@ -82,6 +90,7 @@ export function LessonsForm({
   submitting = false,
 }) {
   const [formData, setFormData] = useState(emptyForm)
+  const [errors, setErrors] = useState({})
   const [attachmentFile, setAttachmentFile] = useState(null)
   const [attachmentError, setAttachmentError] = useState("")
   const [removeAttachment, setRemoveAttachment] = useState(false)
@@ -102,10 +111,12 @@ export function LessonsForm({
         classId: lesson.classId || defaultClass?.id || "",
         topic: lesson.topic || "",
         date: lesson.date || "",
+        duration: lesson.duration || "",
       })
       setAttachmentFile(null)
       setAttachmentError("")
       setRemoveAttachment(false)
+      setErrors({})
     } else {
       setFormData({
         ...emptyForm,
@@ -114,6 +125,7 @@ export function LessonsForm({
       setAttachmentFile(null)
       setAttachmentError("")
       setRemoveAttachment(false)
+      setErrors({})
     }
   }, [lesson, normalizedClassOptions, selectedClassId])
 
@@ -129,6 +141,55 @@ export function LessonsForm({
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+  }
+
+  const validateForm = () => {
+    const nextErrors = {}
+    const trimmedTitle = formData.title.trim()
+
+    if (!formData.code.trim()) {
+      nextErrors.code = "Mã bài giảng là bắt buộc"
+    } else if (!/^BG\d+$/i.test(formData.code.trim())) {
+      nextErrors.code = "Mã bài giảng phải bắt đầu bằng BG và chỉ chứa số sau BG"
+    }
+
+    if (!trimmedTitle) {
+      nextErrors.title = "Tên bài giảng là bắt buộc"
+    } else if (trimmedTitle.length < MIN_TITLE_LENGTH) {
+      nextErrors.title = `Tên bài giảng phải có ít nhất ${MIN_TITLE_LENGTH} ký tự`
+    } else if (trimmedTitle.length > MAX_TITLE_LENGTH) {
+      nextErrors.title = `Tên bài giảng không được vượt quá ${MAX_TITLE_LENGTH} ký tự`
+    } else if (!LESSON_TITLE_PATTERN.test(formData.title)) {
+      nextErrors.title = "Tên bài giảng chỉ được chứa chữ, số và khoảng trắng"
+    }
+
+    if (!formData.topic) {
+      nextErrors.topic = "Môn học là bắt buộc"
+    }
+
+    const trimmedDuration = formData.duration.trim()
+    if (trimmedDuration) {
+      if (trimmedDuration.length > MAX_DURATION_LENGTH) {
+        nextErrors.duration = `Thời lượng không được vượt quá ${MAX_DURATION_LENGTH} ký tự`
+      } else if (!DURATION_PATTERN.test(trimmedDuration)) {
+        nextErrors.duration = "Thời lượng chỉ được chứa chữ, số và khoảng trắng"
+      }
+    }
+
+    if (!formData.date) {
+      nextErrors.date = "Ngày học là bắt buộc"
+    } else if (!dayjs(formData.date, "YYYY-MM-DD", true).isValid()) {
+      nextErrors.date = "Ngày học phải có định dạng dd/mm/yyyy"
+    }
+    if (!formData.classId) {
+      nextErrors.classId = "Lớp học là bắt buộc"
+    }
+
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
   }
 
   const handleAttachmentChange = (event) => {
@@ -166,6 +227,10 @@ export function LessonsForm({
   }
 
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      return
+    }
+
     let attachment = lesson?.attachment || null
 
     if (attachmentFile) {
@@ -188,6 +253,7 @@ export function LessonsForm({
       classId: formData.classId,
       topic: formData.topic,
       date: formData.date,
+      duration: formData.duration.trim(),
       attachment,
       removeAttachment,
     })
@@ -196,8 +262,6 @@ export function LessonsForm({
       onOpenChange(false)
     }
   }
-
-  const isValid = formData.code && formData.title && formData.classId && formData.topic && formData.date && !attachmentError
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,14 +283,16 @@ export function LessonsForm({
                 value={formData.code}
                 onChange={(e) => handleChange("code", e.target.value)}
               />
+              {errors.code ? <p className="text-xs text-destructive">{errors.code}</p> : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Ngày *</Label>
               <DatePicker
                 value={formData.date}
                 onChange={(value) => handleChange("date", value)}
-                placeholder="Chọn ngày học"
+                placeholder="dd/mm/yyyy"
               />
+              {errors.date ? <p className="text-xs text-destructive">{errors.date}</p> : null}
             </div>
           </div>
 
@@ -237,6 +303,17 @@ export function LessonsForm({
               placeholder="Nhập tên bài giảng"
               value={formData.title}
               onChange={(e) => handleChange("title", e.target.value)}
+            />
+            {errors.title ? <p className="text-xs text-destructive">{errors.title}</p> : null}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="duration">Thời lượng</Label>
+            <Input
+              id="duration"
+              placeholder="Ví dụ: 45 phút"
+              value={formData.duration}
+              onChange={(e) => handleChange("duration", e.target.value)}
             />
           </div>
 
@@ -255,6 +332,7 @@ export function LessonsForm({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.topic ? <p className="text-xs text-destructive">{errors.topic}</p> : null}
             </div>
             <div className="space-y-2">
               <Label>Tài liệu bài giảng</Label>
@@ -289,7 +367,7 @@ export function LessonsForm({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Hủy
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid || submitting}>
+          <Button onClick={handleSubmit} disabled={submitting}>
             {lesson ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogFooter>

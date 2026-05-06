@@ -123,6 +123,18 @@ export const createTeacher = async (req, res) => {
 			return res.status(400).json({ success: false, message: 'Mã số giáo viên đã tồn tại' });
 		}
 
+		// Validate date logic: ngayvaolam must be after ngaysinh
+		if (ngaysinh && ngayvaolam) {
+			const dobDate = new Date(ngaysinh);
+			const joinDate = new Date(ngayvaolam);
+			if (joinDate <= dobDate) {
+				return res.status(400).json({ 
+					success: false, 
+					message: 'Ngày vào làm phải sau ngày sinh' 
+				});
+			}
+		}
+
 		const payload = {
 			masoGV,
 			hotenGV,
@@ -287,6 +299,19 @@ export const deleteTeacherAccount = async (req, res) => {
 export const updateTeacher = async (req, res) => {
 	try {
 		const { ngaysinh, ngayvaolam, class: className, ...rest } = req.body || {};
+		
+		// Validate date logic: ngayvaolam must be after ngaysinh
+		if (ngaysinh && ngayvaolam) {
+			const dobDate = new Date(ngaysinh);
+			const joinDate = new Date(ngayvaolam);
+			if (joinDate <= dobDate) {
+				return res.status(400).json({ 
+					success: false, 
+					message: 'Ngày vào làm phải sau ngày sinh' 
+				});
+			}
+		}
+
 		const update = {
 			...rest,
 			...(ngaysinh ? { ngaysinh: new Date(ngaysinh) } : {}),
@@ -320,6 +345,18 @@ export const updateMyTeacherProfile = async (req, res) => {
 			kinhnghiem,
 			status,
 		} = req.body || {};
+
+		// Validate date logic: ngayvaolam must be after ngaysinh
+		if (ngaysinh && ngayvaolam) {
+			const dobDate = new Date(ngaysinh);
+			const joinDate = new Date(ngayvaolam);
+			if (joinDate <= dobDate) {
+				return res.status(400).json({ 
+					success: false, 
+					message: 'Ngày vào làm phải sau ngày sinh' 
+				});
+			}
+		}
 
 		const update = {
 			...(hotenGV !== undefined ? { hotenGV } : {}),

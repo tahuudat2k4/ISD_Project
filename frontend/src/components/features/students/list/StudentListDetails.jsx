@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User, Calendar, MapPin, Phone, Heart, GraduationCap, FileText, Camera } from "lucide-react"
+import { User, Calendar, MapPin, Phone, Heart, GraduationCap, FileText } from "lucide-react"
 
 function getStatusBadgeVariant(status) {
   if (status === "Đang học") {
@@ -35,9 +35,6 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 export function StudentListDetails({ open, onOpenChange, student }) {
-  const [avatarPreview, setAvatarPreview] = React.useState(null)
-  const fileInputRef = React.useRef(null)
-
   if (!student) return null
 
   const getInitials = (name) => {
@@ -46,30 +43,6 @@ export function StudentListDetails({ open, onOpenChange, student }) {
       .map((n) => n[0])
       .join("")
       .toUpperCase() || "?"
-  }
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        alert('Vui lòng chọn file ảnh')
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Ảnh không được vượt quá 5MB')
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result)
-        // TODO: Upload to server
-      }
-      reader.readAsDataURL(file)
-    }
   }
 
   return (
@@ -82,23 +55,13 @@ export function StudentListDetails({ open, onOpenChange, student }) {
         <div className="space-y-4 py-4">
           {/* Header Info with Avatar */}
           <div className="flex flex-col items-center space-y-3">
-            <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+            <div className="relative">
               <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-                <AvatarImage src={avatarPreview || student.avatar || "/avatars/placeholder-student.jpg"} alt={student.name} />
+                <AvatarImage src={student.avatar || "/avatars/placeholder-student.jpg"} alt={student.name} />
                 <AvatarFallback className="text-lg font-semibold bg-primary/10">
                   {getInitials(student.name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="h-6 w-6 text-white" />
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
             </div>
             <div className="text-center">
               <div className="text-lg font-bold">{student.name}</div>
