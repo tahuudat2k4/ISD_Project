@@ -36,6 +36,12 @@ const initialPasswordVisibility = {
   confirmPassword: false,
 }
 
+const initialFormErrors = {
+  username: "",
+  password: "",
+  confirmPassword: "",
+}
+
 const canDeleteTeacherAccount = (status) => status === "inactive" || status === "Không hoạt động"
 
 const getTeacherStatusLabel = (status) => {
@@ -57,6 +63,7 @@ export function TeacherAccountsManager() {
   const [dialogMode, setDialogMode] = React.useState("create")
   const [selectedTeacher, setSelectedTeacher] = React.useState(null)
   const [form, setForm] = React.useState(initialFormState)
+  const [formErrors, setFormErrors] = React.useState(initialFormErrors)
   const [showPassword, setShowPassword] = React.useState(initialPasswordVisibility)
   const [page, setPage] = React.useState(1)
   const [totalPages, setTotalPages] = React.useState(1)
@@ -98,6 +105,7 @@ export function TeacherAccountsManager() {
       password: "",
       confirmPassword: "",
     })
+    setFormErrors(initialFormErrors)
     setShowPassword(initialPasswordVisibility)
     setDialogOpen(true)
   }
@@ -107,6 +115,7 @@ export function TeacherAccountsManager() {
     setDialogMode("create")
     setSelectedTeacher(null)
     setForm(initialFormState)
+    setFormErrors(initialFormErrors)
     setShowPassword(initialPasswordVisibility)
   }
 
@@ -121,8 +130,12 @@ export function TeacherAccountsManager() {
     }
 
     // Xác thực tên đăng nhập
-    if (!username || !password) {
-      toast.error("Tên đăng nhập và mật khẩu là bắt buộc")
+    if (!password) {
+      setFormErrors((prev) => ({ ...prev, password: "Mật khẩu là bắt buộc" }))
+      return
+    }
+    if (!username) {
+      toast.error("Tên đăng nhập là bắt buộc")
       return
     }
     if (username.length < 4 || username.length > 30) {
@@ -454,11 +467,16 @@ export function TeacherAccountsManager() {
                   id="password"
                   type={showPassword.password ? "text" : "password"}
                   value={form.password}
-                  onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
+                  onChange={(event) => {
+                    const nextValue = event.target.value.slice(0, 50)
+                    setForm((prev) => ({ ...prev, password: nextValue }))
+                    setFormErrors((prev) => ({ ...prev, password: "" }))
+                  }}
                   placeholder="Tối thiểu 6 ký tự"
                   maxLength={50}
                   autoComplete="new-password"
                   disabled={submitting}
+                  aria-invalid={!!formErrors.password}
                   className="pr-10"
                 />
                 <button
@@ -469,6 +487,9 @@ export function TeacherAccountsManager() {
                   {showPassword.password ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
+              {formErrors.password ? (
+                <p className="text-xs text-red-500">{formErrors.password}</p>
+              ) : null}
             </div>
 
             <div className="grid gap-2">
@@ -478,7 +499,10 @@ export function TeacherAccountsManager() {
                   id="confirmPassword"
                   type={showPassword.confirmPassword ? "text" : "password"}
                   value={form.confirmPassword}
-                  onChange={(event) => setForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+                  onChange={(event) => {
+                    const nextValue = event.target.value.slice(0, 50)
+                    setForm((prev) => ({ ...prev, confirmPassword: nextValue }))
+                  }}
                   placeholder="Nhập lại mật khẩu"
                   maxLength={50}
                   autoComplete="new-password"

@@ -377,6 +377,7 @@ export function StudentListForm({
             <Input
               id="name"
               placeholder="Nguyễn Văn A"
+              maxLength={100}
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
               {...getFieldErrorProps(errors.name)}

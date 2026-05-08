@@ -31,6 +31,28 @@ export function LoginForm({
     setError("")
     setLoading(true)
 
+    // Client-side validation
+    if (username.length < 5) {
+      setError("Tên đăng nhập phải có ít nhất 5 ký tự.")
+      setLoading(false)
+      return
+    }
+    if (username.length > 100) {
+      setError("Tên đăng nhập không được vượt quá 100 ký tự.")
+      setLoading(false)
+      return
+    }
+    if (password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.")
+      setLoading(false)
+      return
+    }
+    if (password.length > 50) {
+      setError("Mật khẩu không được vượt quá 50 ký tự.")
+      setLoading(false)
+      return
+    }
+
     try {
       // Xóa toàn bộ khoảng trắng trong username trước khi gửi đi
       const cleanUsername = username.replace(/\s+/g, "");
@@ -69,6 +91,7 @@ export function LoginForm({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  maxLength={100}
                   required 
                   disabled={loading}
                 />
@@ -81,6 +104,7 @@ export function LoginForm({
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    maxLength={50}
                     required 
                     disabled={loading}
                     className="pr-10"

@@ -140,6 +140,13 @@ export function ClassCreateDialog({
       nextErrors.giaoVienId = "Vui lòng chọn giáo viên chủ nhiệm"
     }
 
+    const capacityValue = Number(form.capacity)
+    if (Number.isNaN(capacityValue) || capacityValue < 1 || !Number.isInteger(capacityValue)) {
+      nextErrors.capacity = "Sức chứa phải là một số nguyên lớn hơn hoặc bằng 1"
+    } else if (capacityValue > 500) {
+      nextErrors.capacity = "Sức chứa phải nhỏ hơn hoặc bằng 500"
+    }
+
     const assistantTeacherError = validateAssistantTeacher(form.assistantTeacher)
     if (assistantTeacherError) {
       nextErrors.assistantTeacher = assistantTeacherError
@@ -155,7 +162,7 @@ export function ClassCreateDialog({
       tenlop: form.tenlop.trim(),
       giaoVienId: form.giaoVienId,
       status: form.status,
-      succhua: Number(form.capacity) || 30,
+      succhua: capacityValue || 30,
       giaovienphutro: form.assistantTeacher.trim(),
       cosovatchat: form.facilities
         .split(",")
@@ -194,6 +201,7 @@ export function ClassCreateDialog({
                 value={form.malop}
                 onChange={(event) => handleFieldChange("malop", event.target.value)}
                 placeholder={gradeCode ? `Ví dụ: ${gradeCode}01` : "Ví dụ: MAM01"}
+                maxLength={20}
                 aria-invalid={Boolean(errors.malop)}
                 className={errors.malop ? "border-destructive" : undefined}
                 disabled={submitting}
@@ -210,6 +218,7 @@ export function ClassCreateDialog({
                 value={form.tenlop}
                 onChange={(event) => handleFieldChange("tenlop", event.target.value)}
                 placeholder="Ví dụ: Mầm 1A"
+                maxLength={100}
                 aria-invalid={Boolean(errors.tenlop)}
                 className={errors.tenlop ? "border-destructive" : undefined}
                 disabled={submitting}
@@ -266,11 +275,15 @@ export function ClassCreateDialog({
                 id="capacity"
                 type="number"
                 min="1"
+                max="500"
                 value={form.capacity}
                 onChange={(event) => handleFieldChange("capacity", event.target.value)}
                 placeholder="30"
                 disabled={submitting}
+                aria-invalid={Boolean(errors.capacity)}
+                className={errors.capacity ? "border-destructive" : undefined}
               />
+              {errors.capacity ? <p className="text-sm text-destructive">{errors.capacity}</p> : null}
             </div>
 
             <div className="grid gap-2">

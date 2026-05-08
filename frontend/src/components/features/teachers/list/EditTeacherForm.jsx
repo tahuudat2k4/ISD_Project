@@ -23,6 +23,14 @@ import { Save, X } from "lucide-react"
 import dayjs from "dayjs"
 import { DatePicker } from "@/components/ui/date-picker"
 
+const capitalizeText = (text) => {
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProfile = false }) {
   const [formData, setFormData] = React.useState({
     masoGV: "",
@@ -95,27 +103,29 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
       }
     } else if (name === "name") {
       // Chỉ cho phép chữ và khoảng trắng, không để trống
+      const capitalizedValue = capitalizeName(value)
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: capitalizedValue,
       }))
-      if (!value.trim()) {
+      if (!capitalizedValue.trim()) {
         setNameError("Họ và tên không được để trống")
-      } else if (!/^([\p{L}\s]+)$/u.test(value)) {
+      } else if (!/^([\p{L}\s]+)$/u.test(capitalizedValue)) {
         setNameError("Họ và tên chỉ được chứa chữ cái và khoảng trắng")
       } else {
         setNameError("")
       }
     } else if (name === "address") {
+      const capitalizedValue = capitalizeText(value)
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: capitalizedValue,
       }))
-      if (!value.trim()) {
+      if (!capitalizedValue.trim()) {
         setAddressError("Địa chỉ không được để trống")
-      } else if (value.length < 5) {
+      } else if (capitalizedValue.length < 5) {
         setAddressError("Địa chỉ phải có ít nhất 5 ký tự")
-      } else if (/[<>\{\};]/.test(value)) {
+      } else if (/[<>\{\};]/.test(capitalizedValue)) {
         setAddressError("Địa chỉ không được chứa ký tự đặc biệt: <, >, {, }, ;")
       } else {
         setAddressError("")
@@ -139,7 +149,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
       }))
       if (!value) {
         setJoinDateError("Ngày vào làm không được để trống")
-      } else if (formData.dateOfBirth && dayjs(value).isSameOrBefore(dayjs(formData.dateOfBirth), 'day')) {
+      } else if (formData.dateOfBirth && !dayjs(value).isAfter(dayjs(formData.dateOfBirth), 'day')) {
         setJoinDateError("Ngày vào làm phải sau ngày sinh")
       } else if (dayjs(value).isAfter(dayjs(), 'day')) {
         setJoinDateError("Ngày vào làm không được lớn hơn ngày hiện tại")
@@ -163,6 +173,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    
     // Kiểm tra số điện thoại
     let valid = true
     if (formData.phone.length !== 10) {
@@ -208,7 +219,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
     if (!formData.joinDate) {
       setJoinDateError("Ngày vào làm không được để trống")
       valid = false
-    } else if (formData.dateOfBirth && dayjs(formData.joinDate).isSameOrBefore(dayjs(formData.dateOfBirth), 'day')) {
+    } else if (formData.dateOfBirth && !dayjs(formData.joinDate).isAfter(dayjs(formData.dateOfBirth), 'day')) {
       setJoinDateError("Ngày vào làm phải sau ngày sinh")
       valid = false
     } else if (dayjs(formData.joinDate).isAfter(dayjs(), 'day')) {
@@ -217,6 +228,7 @@ export function EditTeacherForm({ teacher, open, onOpenChange, onSave, isOwnProf
     } else {
       setJoinDateError("")
     }
+    
     if (!valid) return
     onSave({
       ...teacher,

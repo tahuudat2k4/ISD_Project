@@ -85,6 +85,14 @@ const formatDateForApi = (value) => {
   return `${year}-${month}-${day}`
 }
 
+const capitalizeText = (text) => {
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
   const [formData, setFormData] = React.useState({
     masoGV: "",
@@ -106,9 +114,13 @@ export function AddTeacherForm({ open = false, onOpenChange, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    const nextValue = name === "dateOfBirth" || name === "joinDate"
+    let nextValue = name === "dateOfBirth" || name === "joinDate"
       ? normalizeDateInput(value)
       : value
+
+    if (name === "name") {
+      nextValue = capitalizeName(nextValue)    } else if (name === "address") {
+      nextValue = capitalizeText(nextValue)    }
 
     setFormData((prev) => ({
       ...prev,

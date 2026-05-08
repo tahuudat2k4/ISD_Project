@@ -10,14 +10,7 @@ const TeacherSchema = new mongoose.Schema({
     sdt: { type: String },
     ngayvaolam: { type: Date },
     trinhdohocvan: { 
-        type: String, 
-        maxlength: [50, "Trình độ không được vượt quá 50 ký tự"],
-        validate: {
-            validator: function(v) {
-                return /^[a-zA-Z\s]+$/.test(v);
-            },
-            message: "Trình độ chỉ được chứa chữ cái và khoảng cách"
-        },
+        type: String,
         trim: true
     },
     kinhnghiem: { type: String },
